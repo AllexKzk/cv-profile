@@ -35,6 +35,26 @@ Nuxt 4 (SSR), TypeScript strict, Tailwind v4 (`@tailwindcss/vite`), shadcn-vue (
 - Every UI string goes through i18n (`i18n/locales/en.json` and `ru.json` together; a test checks
   that both have the same keys).
 - Style with theme tokens (`bg-background`, `text-muted-foreground`), never raw colors like `bg-white`.
+- No Tailwind utility classes in templates. Give elements semantic class names and apply
+  utilities in `<style scoped>` with `@apply`. Each style block must start with
+  `@reference "~/assets/css/main.css";` so Tailwind v4 knows the theme tokens and the `dark` variant:
+
+  ```vue
+  <template>
+    <header class="header">…</header>
+  </template>
+
+  <style scoped>
+  @reference "~/assets/css/main.css";
+
+  .header {
+    @apply flex items-center justify-between;
+  }
+  </style>
+  ```
+
+  Exception: generated shadcn components in `app/components/ui` stay as generated (cva variants).
+  Passing a utility to a shadcn component prop (`class`, `variant`, `size`) is fine.
 - Icons from `@lucide/vue`.
 - shadcn components are added with `pnpm dlx shadcn-vue@2.9.0 add <name>` into `app/components/ui`,
   only in the step that needs them.

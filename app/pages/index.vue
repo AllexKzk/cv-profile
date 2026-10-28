@@ -15,12 +15,12 @@ function toggleLocale() {
 </script>
 
 <template>
-  <main class="mx-auto flex min-h-dvh max-w-2xl flex-col gap-6 p-6">
-    <header class="flex items-center justify-between">
-      <h1 class="text-2xl font-bold">
+  <main class="page">
+    <header class="header">
+      <h1 class="title">
         {{ $t('demo.title') }}
       </h1>
-      <div class="flex gap-1">
+      <div class="actions">
         <Button
           variant="ghost"
           :aria-label="$t('demo.switchLocale')"
@@ -42,11 +42,11 @@ function toggleLocale() {
       </div>
     </header>
 
-    <p class="text-muted-foreground">
+    <p class="subtitle">
       {{ $t('demo.subtitle') }}
     </p>
 
-    <div class="flex flex-wrap gap-2">
+    <div class="buttons">
       <Button>Default</Button>
       <Button variant="secondary">
         Secondary
@@ -59,8 +59,40 @@ function toggleLocale() {
       </Button>
     </div>
 
-    <p class="font-mono text-sm">
+    <p class="code">
       font-mono: const answer = 42
     </p>
   </main>
 </template>
+
+<style scoped>
+@reference "~/assets/css/main.css";
+
+.page {
+  @apply mx-auto flex min-h-dvh max-w-2xl flex-col gap-6 p-6;
+}
+
+.header {
+  @apply flex items-center justify-between;
+}
+
+.title {
+  @apply text-2xl font-bold;
+}
+
+.actions {
+  @apply flex gap-1;
+}
+
+.subtitle {
+  @apply text-muted-foreground;
+}
+
+.buttons {
+  @apply flex flex-wrap gap-2;
+}
+
+.code {
+  @apply font-mono text-sm;
+}
+</style>
