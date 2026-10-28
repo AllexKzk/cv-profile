@@ -28,7 +28,7 @@ shadcn-компонентов). Если больше — шаг дробитс�
 |---|---|---|---|
 | **Фаза 0. Фундамент** ||||
 | 0.1 | Скаффолд Nuxt 4 + TS + ESLint + Vitest + git | — | done |
-| 0.2 | Tailwind v4 + shadcn-vue + color-mode + шрифты | 0.1 | review |
+| 0.2 | Tailwind v4 + shadcn-vue + color-mode + шрифты | 0.1 | done |
 | 0.3 | i18n (en/ru) + `CLAUDE.md` + `.env.example` + первый деплой на Vercel | 0.2 | |
 | **Фаза 1. Данные и каркас** ||||
 | 1.1 | Zod-схема CV, плейсхолдеры EN/RU, `getCv(locale)`, тест | 0.3 | |
