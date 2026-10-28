@@ -1,0 +1,8 @@
+{
+  "demo": {
+    "title": "CV Agent",
+    "subtitle": "Fullstack-инженер. T-shaped инженер с сильной фронтенд-экспертизой.",
+    "toggleTheme": "Сменить тему",
+    "switchLocale": "Сменить язык"
+  }
+}

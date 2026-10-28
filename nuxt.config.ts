@@ -8,6 +8,7 @@ export default defineNuxtConfig({
     'shadcn-nuxt',
     '@nuxtjs/color-mode',
     '@nuxt/fonts',
+    '@nuxtjs/i18n',
   ],
   devtools: { enabled: true },
   css: ['~/assets/css/main.css'],
@@ -16,6 +17,20 @@ export default defineNuxtConfig({
     preference: 'system',
     fallback: 'light',
     storageKey: 'cv-color-mode',
+  },
+  // Empty defaults are overridden at runtime by NUXT_* env vars (see .env.example)
+  runtimeConfig: {
+    openrouterApiKey: '',
+    openrouterModel: '',
+    openrouterFallbackModels: '',
+    upstashRedisRestUrl: '',
+    upstashRedisRestToken: '',
+    dailyLlmLimit: 500,
+    telegramBotToken: '',
+    telegramChatId: '',
+    public: {
+      siteUrl: '',
+    },
   },
   compatibilityDate: '2026-10-29',
   vite: {
@@ -32,6 +47,19 @@ export default defineNuxtConfig({
   fonts: {
     defaults: {
       weights: [400, 500, 700],
+    },
+  },
+  i18n: {
+    defaultLocale: 'en',
+    strategy: 'prefix_except_default',
+    locales: [
+      { code: 'en', language: 'en-US', name: 'English', file: 'en.json' },
+      { code: 'ru', language: 'ru-RU', name: 'Русский', file: 'ru.json' },
+    ],
+    detectBrowserLanguage: {
+      useCookie: true,
+      cookieKey: 'cv-locale',
+      redirectOn: 'root',
     },
   },
   shadcn: {

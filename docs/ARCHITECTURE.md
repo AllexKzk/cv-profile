@@ -160,7 +160,7 @@ server/
 `streamText({ model, system, tools, stopWhen: stepCount(…), maxOutputTokens })`.
 
 ### Безопасность и бюджет
-- `OPENROUTER_API_KEY` только в `runtimeConfig` (серверная часть), никогда не в `public`.
+- `NUXT_OPENROUTER_API_KEY` только в `runtimeConfig` (серверная часть), никогда не в `public`.
 - Лимиты по IP, глобальный дневной лимит и лимит токенов на ответ — см. §9.
 - Текст вакансии — это **данные**, а не инструкции: обёртка в теги + явное правило в системном
   промпте; агент не меняет роль и не раскрывает промпт.
@@ -169,16 +169,17 @@ server/
 - `maxDuration` для функции чата (стрим может идти 20–40 с).
 
 ### Env (Vercel)
+Имена с префиксом `NUXT_` — Nuxt сам подставляет их в `runtimeConfig` (полный список с комментариями в `.env.example`).
 ```
-OPENROUTER_API_KEY=
-NUXT_OPENROUTER_MODEL=           # основная модель с надёжным tool calling
-NUXT_OPENROUTER_FALLBACK_MODELS= # через запятую
-UPSTASH_REDIS_REST_URL=
-UPSTASH_REDIS_REST_TOKEN=
-NUXT_PUBLIC_SITE_URL=https://allexkzk.dev
+NUXT_OPENROUTER_API_KEY=
+NUXT_OPENROUTER_MODEL=            # основная модель с надёжным tool calling
+NUXT_OPENROUTER_FALLBACK_MODELS=  # через запятую
+NUXT_UPSTASH_REDIS_REST_URL=
+NUXT_UPSTASH_REDIS_REST_TOKEN=
 NUXT_DAILY_LLM_LIMIT=500
-TELEGRAM_BOT_TOKEN=
-TELEGRAM_CHAT_ID=
+NUXT_TELEGRAM_BOT_TOKEN=
+NUXT_TELEGRAM_CHAT_ID=
+NUXT_PUBLIC_SITE_URL=https://allexkzk.dev
 ```
 
 ---

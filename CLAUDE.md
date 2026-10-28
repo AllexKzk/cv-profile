@@ -1,0 +1,50 @@
+# CV Agent
+
+Personal CV site built as a chat with an AI agent. Read `docs/ARCHITECTURE.md` for the design
+and `docs/PLAN.md` for the steps. Docs are in Russian, code and comments are in English.
+
+## Process
+
+- Every step has a spec in `docs/specs/<id>-<slug>.md`. Code only after the spec status is `approved`.
+- Work on branch `step/<id>-<slug>`. Do **only** what the spec says. If you need to deviate, stop and ask.
+- Keep diffs small (~300–400 lines of own code, excluding the lockfile and generated shadcn components).
+- Finish with a report: what was done, how it works under the hood, where to start the review,
+  what was not verified, deviations from the spec.
+- The owner reviews and merges. Do not merge, push to `main` or deploy unless asked.
+
+## Commands
+
+```bash
+pnpm dev         # http://localhost:3000
+pnpm lint        # eslint (stylistic rules, no Prettier); pnpm lint:fix to autofix
+pnpm typecheck   # vue-tsc via nuxt typecheck
+pnpm test        # vitest, tests in tests/unit
+pnpm build
+```
+
+All four checks (`lint`, `typecheck`, `test`, `build`) must pass before the report.
+
+## Stack
+
+Nuxt 4 (SSR), TypeScript strict, Tailwind v4 (`@tailwindcss/vite`), shadcn-vue (reka-ui),
+`@nuxtjs/color-mode`, `@nuxt/fonts`, `@nuxtjs/i18n`, Vitest. Deploy: Vercel.
+
+## Conventions
+
+- `<script setup lang="ts">`, Composition API, components in PascalCase.
+- Every UI string goes through i18n (`i18n/locales/en.json` and `ru.json` together; a test checks
+  that both have the same keys).
+- Style with theme tokens (`bg-background`, `text-muted-foreground`), never raw colors like `bg-white`.
+- Icons from `@lucide/vue`.
+- shadcn components are added with `pnpm dlx shadcn-vue@2.9.0 add <name>` into `app/components/ui`,
+  only in the step that needs them.
+- Secrets only in server `runtimeConfig`, set via `NUXT_*` env vars (see `.env.example`).
+  Never in `runtimeConfig.public`, never in code.
+
+## Known pitfalls
+
+- `shadcn-vue add` may insert a Google Fonts `@import` into `app/assets/css/main.css`. Check the
+  diff and remove it: fonts are self-hosted by `@nuxt/fonts`.
+- `lucide-vue-next` is deprecated, use `@lucide/vue`.
+- TypeScript is pinned to 5.9: typescript-eslint does not support 7.x yet.
+- After changing `nuxt.config.ts` or `main.css` heavily, restart the dev server: HMR can keep stale CSS.
