@@ -31,7 +31,7 @@ shadcn-компонентов). Если больше — шаг дробитс�
 | 0.2 | Tailwind v4 + shadcn-vue + color-mode + шрифты | 0.1 | done |
 | 0.3 | i18n (en/ru) + `CLAUDE.md` + `.env.example` + первый деплой на Vercel | 0.2 | done |
 | **Фаза 1. Данные и каркас** ||||
-| 1.1 | Zod-схема CV, плейсхолдеры EN/RU, `getCv(locale)`, тест | 0.3 | review |
+| 1.1 | Zod-схема CV, плейсхолдеры EN/RU, `getCv(locale)`, тест | 0.3 | done |
 | 1.2 | Layout + TopBar: контакты, смена темы, смена языка | 1.1 | |
 | 1.3 | InfoDialog «О проекте» | 1.2 | |
 | **Фаза 2. Чат без LLM** ||||
