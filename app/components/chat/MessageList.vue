@@ -83,6 +83,7 @@ onMounted(scrollToBottom)
       :message="message"
     />
     <ChatTypingIndicator v-if="status === 'submitted'" />
+    <slot name="footer" />
   </div>
 </template>
 

@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { RotateCcw } from '@lucide/vue'
 
-const { messages, stop } = useCvChat()
+const { messages, stop, clearError } = useCvChat()
 
 // The persistence watcher in plugins/chat.ts removes the stored history once the list is empty
 async function resetChat() {
   await stop()
+  clearError()
   messages.value = []
 }
 </script>

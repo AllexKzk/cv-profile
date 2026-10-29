@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vitest/config'
 import { defineVitestProject } from '@nuxt/test-utils/config'
 
@@ -10,6 +11,10 @@ export default defineConfig({
           name: 'unit',
           environment: 'node',
           include: ['tests/unit/**/*.test.ts'],
+        },
+        // Server code imports shared modules through the Nuxt alias
+        resolve: {
+          alias: { '#shared': fileURLToPath(new URL('./shared', import.meta.url)) },
         },
       },
       // Components and composables: a real Nuxt app (plugins, i18n, auto-imports) in happy-dom

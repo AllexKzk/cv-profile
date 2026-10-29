@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useElementSize } from '@vueuse/core'
 
-const { messages, status, sendMessage } = useCvChat()
+const { messages, status, error, sendMessage, stop, regenerate } = useCvChat()
 const picker = useVacancyPicker()
 
 const isEmpty = computed(() => messages.value.length === 0)
@@ -38,6 +38,13 @@ function send(text: string) {
           class="cards"
         />
       </template>
+      <template #footer>
+        <ChatError
+          v-if="error && status === 'error'"
+          :error="error"
+          @retry="regenerate()"
+        />
+      </template>
     </ChatMessageList>
     <div
       ref="composer"
@@ -50,6 +57,7 @@ function send(text: string) {
       <ChatInput
         :busy="busy"
         @send="send"
+        @stop="stop()"
         @attach="picker.open()"
       />
     </div>

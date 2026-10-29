@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ArrowUp, Paperclip } from '@lucide/vue'
+import { ArrowUp, Paperclip, Square } from '@lucide/vue'
+import { CHAT_LIMITS } from '#shared/chat/history'
 import { useTextareaAutosize } from '@vueuse/core'
 import { Textarea } from '@/components/ui/textarea'
 
@@ -10,6 +11,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   send: [text: string]
+  stop: []
   attach: []
 }>()
 
@@ -45,6 +47,7 @@ function onEnter(event: KeyboardEvent) {
       ref="field"
       v-model="text"
       rows="1"
+      :maxlength="CHAT_LIMITS.messageChars"
       class="max-h-52 min-h-0 resize-none border-0 bg-transparent px-1 shadow-none field-sizing-fixed focus-visible:ring-0 dark:bg-transparent"
       :placeholder="$t('chat.input.placeholder')"
       :aria-label="$t('chat.input.placeholder')"
@@ -66,6 +69,17 @@ function onEnter(event: KeyboardEvent) {
         <TooltipContent>{{ $t('chat.input.attach') }}</TooltipContent>
       </Tooltip>
       <Button
+        v-if="busy"
+        type="button"
+        size="icon"
+        class="stop"
+        :aria-label="$t('chat.input.stop')"
+        @click="emit('stop')"
+      >
+        <Square class="fill-current" />
+      </Button>
+      <Button
+        v-else
         type="submit"
         size="icon"
         :disabled="!canSend"

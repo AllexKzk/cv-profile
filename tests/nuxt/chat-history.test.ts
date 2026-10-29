@@ -22,6 +22,19 @@ describe('chat history', () => {
     expect(await loadHistory(localStorage)).toEqual([answer])
   })
 
+  it('loads tool parts of the agent', async () => {
+    const answer: CvUIMessage = {
+      id: '1',
+      role: 'assistant',
+      parts: [
+        { type: 'tool-showCvSection', toolCallId: 'c1', state: 'output-available', input: { section: 'skills' }, output: { section: 'skills' } },
+        { type: 'text', text: 'Main stack: **Vue**.' },
+      ],
+    }
+    saveHistory(localStorage, [answer])
+    expect(await loadHistory(localStorage)).toEqual([answer])
+  })
+
   it(`keeps only the last ${HISTORY_LIMIT} messages`, async () => {
     saveHistory(localStorage, Array.from({ length: HISTORY_LIMIT + 5 }, (_, i) => message(String(i))))
     const history = await loadHistory(localStorage)

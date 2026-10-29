@@ -21,10 +21,12 @@ export default defineNuxtConfig({
   // Empty defaults are overridden at runtime by NUXT_* env vars (see .env.example)
   runtimeConfig: {
     openrouterApiKey: '',
-    openrouterModel: '',
-    openrouterFallbackModels: '',
+    openrouterModel: 'anthropic/claude-haiku-5.5',
+    openrouterFallbackModels: 'openai/gpt-6-luna,deepseek/deepseek-v4.1-flash',
     upstashRedisRestUrl: '',
     upstashRedisRestToken: '',
+    ipRequestLimit: 15,
+    ipDailyBudgetUsd: 1,
     dailyLlmLimit: 500,
     telegramBotToken: '',
     telegramChatId: '',
@@ -33,6 +35,10 @@ export default defineNuxtConfig({
     },
   },
   compatibilityDate: '2026-10-29',
+  nitro: {
+    // The chat streams an answer for up to tens of seconds
+    vercel: { functions: { maxDuration: 60 } },
+  },
   vite: {
     plugins: [tailwindcss()],
   },

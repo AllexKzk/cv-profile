@@ -14,9 +14,30 @@ export const cvDataSchemas = {
 
 export type CvDataParts = { [K in keyof typeof cvDataSchemas]: z.infer<typeof cvDataSchemas[K]> }
 
-// Tools the agent can call. Filled in F3+.
-export type CvTools = Record<never, never>
+// Tools the agent can call. Schemas live here so the server tool, stored history and
+// the client share one definition.
+const cvSectionSchema = z.object({ section: z.enum(CV_SECTIONS) })
+
+export const cvToolSchemas = {
+  // Server tool: the agent shows a CV block instead of retelling it
+  showCvSection: { inputSchema: cvSectionSchema, outputSchema: cvSectionSchema },
+}
+
+type ToolTypes<T extends Record<string, { inputSchema: z.ZodType, outputSchema: z.ZodType }>> = {
+  [K in keyof T]: { input: z.infer<T[K]['inputSchema']>, output: z.infer<T[K]['outputSchema']> }
+}
+
+export type CvTools = ToolTypes<typeof cvToolSchemas>
 
 export type CvUIMessage = UIMessage<unknown, CvDataParts, CvTools>
 export type CvMessagePart = CvUIMessage['parts'][number]
 export type CvDataPart<K extends keyof CvDataParts> = Extract<CvMessagePart, { type: `data-${K}` }>
+export type CvToolPart<K extends keyof CvTools> = Extract<CvMessagePart, { type: `tool-${K}` }>
+
+// Conversation scenarios of /api/chat. F4–F6 add 'interview' and 'match'.
+export const CHAT_SCENARIOS = ['free'] as const
+export type ChatScenario = typeof CHAT_SCENARIOS[number]
+
+// Error codes /api/chat answers with; the client maps them to i18n texts
+export const CHAT_ERROR_CODES = ['invalid', 'forbidden', 'rate_limit', 'ip_budget', 'daily_limit', 'model_error'] as const
+export type ChatErrorCode = typeof CHAT_ERROR_CODES[number]

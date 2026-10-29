@@ -14,7 +14,7 @@ export function useFreshMessages() {
 
 // Appends a user message and an assistant reply without calling the transport (local scenarios)
 export function useLocalExchange() {
-  const { messages } = useCvChat()
+  const { messages, clearError } = useCvChat()
   const fresh = useFreshMessages()
 
   return (question: string, reply: string | CvUIMessage['parts']) => {
@@ -24,6 +24,8 @@ export function useLocalExchange() {
       role: 'assistant',
       parts: typeof reply === 'string' ? [{ type: 'text', text: reply }] : reply,
     }
+    // A local answer moves the conversation on: a previous request's error is no longer relevant
+    clearError()
     fresh.value = [...fresh.value, answer.id]
     messages.value = [...messages.value, userMessage, answer]
   }

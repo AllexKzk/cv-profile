@@ -25,13 +25,23 @@
     "input": {
       "placeholder": "Ask about experience, skills, projects…",
       "send": "Send",
-      "attach": "Attach a vacancy (PDF, DOCX, MD, TXT)"
+      "attach": "Attach a vacancy (PDF, DOCX, MD, TXT)",
+      "stop": "Stop"
     },
     "log": "Conversation",
     "typing": "Assistant is typing",
     "stub": {
-      "reply": "The AI assistant is almost ready: soon I'll answer questions like this one. Meanwhile, try the buttons above the input.",
       "soon": "This feature is coming soon."
+    },
+    "error": {
+      "retry": "Retry",
+      "network": "Couldn't get an answer. Check your connection and try again.",
+      "model_error": "The assistant couldn't answer right now. Please try again.",
+      "rate_limit": "Too many messages in a row. Please try again in a few minutes.",
+      "ip_budget": "That's all the AI answers for today from your network. You can download the CV or message Alexandr directly.",
+      "daily_limit": "The assistant has answered a lot today and is resting. You can download the CV or message Alexandr directly.",
+      "invalid": "This message couldn't be sent. Try making it shorter or start a new chat.",
+      "forbidden": "The chat works only on the original website."
     }
   },
   "about": {

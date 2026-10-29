@@ -1,5 +1,5 @@
 import { safeValidateUIMessages } from 'ai'
-import { cvDataSchemas } from '#shared/types/chat'
+import { cvDataSchemas, cvToolSchemas } from '#shared/types/chat'
 import type { CvUIMessage } from '#shared/types/chat'
 
 export const HISTORY_KEY = 'cv-chat'
@@ -44,6 +44,7 @@ export async function loadHistory(storage: Storage): Promise<CvUIMessage[]> {
       const result = await safeValidateUIMessages<CvUIMessage>({
         messages: stored.messages,
         dataSchemas: cvDataSchemas,
+        tools: cvToolSchemas,
       })
       if (result.success) return result.data
     }

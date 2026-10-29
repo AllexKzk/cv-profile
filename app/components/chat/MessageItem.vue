@@ -20,6 +20,7 @@ const animated = computed(() => fresh.value.includes(props.message.id))
       v-for="(part, index) in message.parts"
       :key="index"
       :part="part"
+      :role="message.role"
       :class="{ appear: animated }"
       :style="animated ? { animationDelay: `${index * STAGGER_MS}ms` } : undefined"
     />

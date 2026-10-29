@@ -1,8 +1,9 @@
 import { useChat } from '@ai-sdk/vue'
 import type { UseChatHelpers } from '@ai-sdk/vue'
+import { DefaultChatTransport } from 'ai'
+import { trimHistory } from '#shared/chat/history'
 import type { CvUIMessage } from '#shared/types/chat'
 import { loadHistory, saveHistory } from '~/lib/chat-history'
-import { createStubTransport } from '~/lib/stub-transport'
 
 // One chat per app instance: on the server every request gets its own, so state is never shared.
 // Lives outside pages, so switching the locale (`/` ↔ `/ru`) keeps the conversation.
@@ -11,7 +12,13 @@ import { createStubTransport } from '~/lib/stub-transport'
 export default defineNuxtPlugin((nuxtApp) => {
   // Explicit type: the transport reads nuxtApp.$i18n, whose type includes this plugin's provide
   const chat: UseChatHelpers<CvUIMessage> = useChat<CvUIMessage>({
-    transport: createStubTransport((): string => nuxtApp.$i18n.t('chat.stub.reply')),
+    transport: new DefaultChatTransport<CvUIMessage>({
+      api: '/api/chat',
+      // Only the tail the model sees: the server trims it anyway, this just sends less
+      prepareSendMessagesRequest: ({ messages }) => ({
+        body: { messages: trimHistory(messages), scenario: 'free', locale: nuxtApp.$i18n.locale.value },
+      }),
+    }),
   })
 
   if (import.meta.client) {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { TextUIPart } from 'ai'
 
-// Plain text with line breaks. Markdown comes in F3.
+// Plain text with line breaks: what the user typed. Assistant text goes through MarkdownBlock.
 defineProps<{ part: TextUIPart }>()
 </script>
 

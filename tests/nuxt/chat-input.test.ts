@@ -38,4 +38,12 @@ describe('ChatInput', () => {
     await textarea.trigger('keydown', { key: 'Enter' })
     expect(input.emitted('send')).toBeUndefined()
   })
+
+  it('shows Stop instead of Send while answering', async () => {
+    const { input } = await setup({ busy: true })
+    const stop = input.find('button[aria-label="Stop"]')
+    expect(input.find('button[type="submit"]').exists()).toBe(false)
+    await stop.trigger('click')
+    expect(input.emitted('stop')).toHaveLength(1)
+  })
 })
