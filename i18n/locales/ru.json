@@ -1,8 +1,19 @@
 {
-  "demo": {
-    "title": "CV Agent",
-    "subtitle": "Fullstack-инженер. T-shaped инженер с сильной фронтенд-экспертизой.",
-    "toggleTheme": "Сменить тему",
-    "switchLocale": "Сменить язык"
+  "topbar": {
+    "contacts": {
+      "title": "Контакты",
+      "telegram": "Telegram",
+      "linkedin": "LinkedIn",
+      "github": "GitHub",
+      "email": "Написать на почту"
+    },
+    "theme": {
+      "toDark": "Включить тёмную тему",
+      "toLight": "Включить светлую тему"
+    },
+    "locale": "Язык"
+  },
+  "home": {
+    "placeholder": "Здесь будет чат"
   }
 }

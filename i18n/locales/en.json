@@ -1,8 +1,19 @@
 {
-  "demo": {
-    "title": "CV Agent",
-    "subtitle": "Fullstack engineer. A T-shaped engineer with strong frontend expertise.",
-    "toggleTheme": "Toggle theme",
-    "switchLocale": "Switch language"
+  "topbar": {
+    "contacts": {
+      "title": "Contacts",
+      "telegram": "Telegram",
+      "linkedin": "LinkedIn",
+      "github": "GitHub",
+      "email": "Email me"
+    },
+    "theme": {
+      "toDark": "Switch to dark theme",
+      "toLight": "Switch to light theme"
+    },
+    "locale": "Language"
+  },
+  "home": {
+    "placeholder": "The chat will be here"
   }
 }
