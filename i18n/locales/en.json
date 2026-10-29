@@ -43,5 +43,31 @@
     "privacyTitle": "Privacy",
     "privacy": "The chat history is stored only in your browser. The server receives only what is needed for an answer; uploaded files are not stored.",
     "source": "Source code on GitHub"
+  },
+  "cv": {
+    "hero": {
+      "experience": "{n}+ year of experience | {n}+ years of experience",
+      "timezone": "Time zone {timezone}",
+      "openTo": "Open to"
+    },
+    "workFormat": {
+      "remote": "Remote",
+      "hybrid": "Hybrid",
+      "office": "Office",
+      "relocation": "Relocation"
+    },
+    "sections": {
+      "about": "About",
+      "experience": "Experience",
+      "education": "Education",
+      "languages": "Languages",
+      "skills": "Skills"
+    },
+    "present": "present",
+    "stack": "Stack",
+    "download": {
+      "updated": "Updated {date}",
+      "button": "Download"
+    }
   }
 }

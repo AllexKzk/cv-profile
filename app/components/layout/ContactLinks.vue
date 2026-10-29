@@ -1,21 +1,6 @@
 <script setup lang="ts">
-import { Mail } from '@lucide/vue'
-import GithubIcon from '~/components/icons/GithubIcon.vue'
-import LinkedinIcon from '~/components/icons/LinkedinIcon.vue'
-import TelegramIcon from '~/components/icons/TelegramIcon.vue'
-
 const cv = useCv()
-const { t } = useI18n()
-
-const links = computed(() => {
-  const { telegram, linkedin, github, email } = cv.value.contacts
-  return [
-    { id: 'telegram', href: telegram, icon: TelegramIcon, external: true },
-    { id: 'linkedin', href: linkedin, icon: LinkedinIcon, external: true },
-    { id: 'github', href: github, icon: GithubIcon, external: true },
-    { id: 'email', href: `mailto:${email}`, icon: Mail, external: false },
-  ].map(link => ({ ...link, label: t(`topbar.contacts.${link.id}`) }))
-})
+const links = useContactLinks(() => cv.value.contacts)
 </script>
 
 <template>

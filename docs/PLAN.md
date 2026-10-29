@@ -37,7 +37,7 @@
 | ID | Фича | Что входит | Зависит от | Статус |
 |---|---|---|---|---|
 | F1 | **Чат-оболочка** | Типы сообщений и реестр блоков, список сообщений, поле ввода (скрепка — пока только UI), welcome-экран, быстрые кнопки, «Новый чат», история в localStorage, InfoDialog «О проекте», инфраструктура компонентных тестов | 1.2 | done |
-| F2 | **Резюме в чате** | Компоненты Hero / About / Experience / Education / Skills / DownloadCard, сценарии «Показать резюме» и «Скачать резюме» без LLM | F1 | |
+| F2 | **Резюме в чате** | Компоненты Hero / About / Experience / Education / Skills / DownloadCard, сценарии «Показать резюме» и «Скачать резюме» без LLM | F1 | review |
 | F3 | **AI: свободный чат** | `/api/chat` на OpenRouter со стримингом, системный промпт с резюме, Markdown, stop / ошибки / повтор, лимиты (IP, дневной, размер), tool `showCvSection` | F2 | |
 | F4 | **Интервью «Кого вы ищете?» + заявки** | Дизайн слотов брифа (в спеке), клиентский tool `askQuestion` с виджетами, `submitBrief` + BriefCard, `/api/lead` → Telegram, форма заявки | F3 | |
 | F5 | **Загрузка и анализ вакансии** | `/api/parse-vacancy` (pdf, docx, md, txt), UI загрузки (скрепка, drag & drop, вставка текста), `analyzeVacancy` со structured output, `match-score` с тестами | F3 | |

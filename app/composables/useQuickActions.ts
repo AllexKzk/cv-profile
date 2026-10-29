@@ -32,13 +32,16 @@ export function useVacancyPicker() {
   return { open }
 }
 
-// Handlers of the quick buttons. Stubs until F2–F5 replace them one by one.
+// Handlers of the quick buttons. The rest are stubs until F3–F5 replace them.
 export function useQuickActions() {
   const { t } = useI18n()
   const exchange = useLocalExchange()
   const picker = useVacancyPicker()
+  const scenarios = useLocalScenarios()
 
   function run(id: QuickActionId) {
+    if (id === 'showCv') return scenarios.showCv()
+    if (id === 'downloadCv') return scenarios.downloadCv()
     if (id === 'uploadVacancy') return picker.open()
     exchange(t(`chat.actions.${id}`), t('chat.stub.soon'))
   }

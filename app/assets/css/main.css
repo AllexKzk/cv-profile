@@ -126,6 +126,8 @@
   }
   html {
     @apply font-sans;
+    /* The page scrolls: reserve the scrollbar space so the centered column does not jump */
+    scrollbar-gutter: stable;
   }
   body {
     @apply bg-background text-foreground;

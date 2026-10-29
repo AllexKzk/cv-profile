@@ -42,3 +42,30 @@ export function getTotalExperienceMonths(cv: Pick<Cv, 'experience'>, now: Date =
 
   return total
 }
+
+// Whole years of experience, rounded down: shown as "5+ years"
+export function getExperienceYears(cv: Pick<Cv, 'experience'>, now: Date = new Date()): number {
+  return Math.floor(getTotalExperienceMonths(cv, now) / 12)
+}
+
+// '2 years 3 months' / '2 года 3 месяца'. Intl picks the plural forms of the locale.
+export function formatDuration(months: number, locale: string): string {
+  const unit = (value: number, name: 'year' | 'month') =>
+    new Intl.NumberFormat(locale, { style: 'unit', unit: name, unitDisplay: 'long' }).format(value)
+
+  const years = Math.floor(months / 12)
+  const rest = months % 12
+  const parts = [
+    years > 0 ? unit(years, 'year') : '',
+    rest > 0 || years === 0 ? unit(rest, 'month') : '',
+  ].filter(Boolean)
+  return new Intl.ListFormat(locale, { style: 'narrow', type: 'unit' }).format(parts)
+}
+
+// '2024-10' → 'Oct 2024' / 'окт. 2024 г.'
+export function formatYearMonth(yearMonth: string, locale: string): string {
+  const [year, month] = yearMonth.split('-').map(Number) as [number, number]
+  // UTC on both sides, so the time zone of the runtime never shifts the month
+  return new Intl.DateTimeFormat(locale, { month: 'short', year: 'numeric', timeZone: 'UTC' })
+    .format(new Date(Date.UTC(year, month - 1)))
+}

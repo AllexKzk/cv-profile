@@ -20,7 +20,8 @@ export const common = {
   files: {
     pdf: {
       en: '/cv/Alexandr_Kozikov_en.pdf',
-      ru: '/cv/Alexandr_Kozikov_ru.pdf',
+      // TODO(owner): '/cv/Alexandr_Kozikov_ru.pdf' once the Russian PDF is added
+      ru: '/cv/Alexandr_Kozikov_en.pdf',
     },
   },
   experience: [

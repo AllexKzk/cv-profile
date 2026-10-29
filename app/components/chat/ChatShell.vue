@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useElementSize } from '@vueuse/core'
+
 const { messages, status, sendMessage } = useCvChat()
 const picker = useVacancyPicker()
 
@@ -10,6 +12,10 @@ const busy = computed(() => status.value === 'submitted' || status.value === 'st
 const greetingTyped = useState('chat-greeting-typed', () => false)
 const animateGreeting = computed(() => !greetingTyped.value && isEmpty.value)
 
+// The sticky composer covers the bottom of the viewport: scrolling must keep messages above it
+const composer = useTemplateRef('composer')
+const { height: composerHeight } = useElementSize(composer, undefined, { box: 'border-box' })
+
 function send(text: string) {
   sendMessage({ text })
 }
@@ -20,6 +26,7 @@ function send(text: string) {
     <ChatMessageList
       :messages="messages"
       :status="status"
+      :bottom-inset="composerHeight"
     >
       <template #intro>
         <ChatGreeting
@@ -32,7 +39,10 @@ function send(text: string) {
         />
       </template>
     </ChatMessageList>
-    <div class="composer">
+    <div
+      ref="composer"
+      class="composer"
+    >
       <ChatQuickActions
         v-if="!isEmpty"
         compact
@@ -50,7 +60,7 @@ function send(text: string) {
 @reference "~/assets/css/main.css";
 
 .chat {
-  @apply flex min-h-0 flex-1 flex-col;
+  @apply flex flex-1 flex-col;
 }
 
 .cards {
@@ -58,6 +68,12 @@ function send(text: string) {
 }
 
 .composer {
-  @apply flex shrink-0 flex-col gap-2 pb-4;
+  @apply sticky bottom-0 z-10 flex shrink-0 flex-col gap-2 bg-background pb-4;
+}
+
+/* Messages fade out under the composer instead of being cut by a hard edge */
+.composer::before {
+  @apply pointer-events-none absolute inset-x-0 -top-6 h-6 bg-linear-to-t from-background to-transparent;
+  content: '';
 }
 </style>

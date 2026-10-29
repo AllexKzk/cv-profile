@@ -22,10 +22,10 @@ describe('chat shell', () => {
 
   it('a quick action adds a question and a stub answer', async () => {
     const wrapper = await mountInApp(ChatShell)
-    await wrapper.findAll('.actions button')[0]!.trigger('click')
+    await wrapper.findAll('.actions button')[1]!.trigger('click')
 
     const messages = wrapper.findAll('.message')
-    expect(messages.map(m => m.text())).toEqual(['Show CV', 'This feature is coming soon.'])
+    expect(messages.map(m => m.text())).toEqual(['Who are you looking for?', 'This feature is coming soon.'])
     expect(wrapper.find('.actions:not(.compact)').exists()).toBe(false)
     expect(wrapper.find('.actions.compact').exists()).toBe(true)
   })

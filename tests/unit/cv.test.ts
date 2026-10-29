@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildCv, getCv, getTotalExperienceMonths, LOCALES, monthsBetween } from '../../shared/cv'
+import { buildCv, formatDuration, formatYearMonth, getCv, getExperienceYears, getTotalExperienceMonths, LOCALES, monthsBetween } from '../../shared/cv'
 import { common } from '../../shared/cv/data/common'
 import { en } from '../../shared/cv/data/en'
 
@@ -88,5 +88,37 @@ describe('getTotalExperienceMonths', () => {
 
   it('gives 5+ years for the real CV', () => {
     expect(getTotalExperienceMonths(getCv('en'), now)).toBeGreaterThanOrEqual(60)
+  })
+})
+
+describe('getExperienceYears', () => {
+  it('rounds down to whole years', () => {
+    const cv = { experience: [{ start: '2021-04', end: '2026-02' }] } as Parameters<typeof getExperienceYears>[0]
+
+    expect(getExperienceYears(cv)).toBe(4)
+  })
+})
+
+describe('formatDuration', () => {
+  it.each([
+    [1, 'en', '1 month'],
+    [12, 'en', '1 year'],
+    [27, 'en', '2 years 3 months'],
+    [0, 'en', '0 months'],
+    [1, 'ru', '1 месяц'],
+    [3, 'ru', '3 месяца'],
+    [11, 'ru', '11 месяцев'],
+    [14, 'ru', '1 год 2 месяца'],
+    [27, 'ru', '2 года 3 месяца'],
+    [65, 'ru', '5 лет 5 месяцев'],
+  ])('%i months in "%s" → %s', (months, locale, expected) => {
+    expect(formatDuration(months, locale)).toBe(expected)
+  })
+})
+
+describe('formatYearMonth', () => {
+  it('formats a month in the given locale', () => {
+    expect(formatYearMonth('2024-10', 'en')).toBe('Oct 2024')
+    expect(formatYearMonth('2024-10', 'ru')).toBe('окт. 2024 г.')
   })
 })
