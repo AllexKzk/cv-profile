@@ -20,7 +20,7 @@ and `docs/PLAN.md` for the steps. Docs are in Russian, code and comments are in 
 pnpm dev         # http://localhost:3000
 pnpm lint        # eslint (stylistic rules, no Prettier); pnpm lint:fix to autofix
 pnpm typecheck   # vue-tsc via nuxt typecheck
-pnpm test        # vitest, tests in tests/unit
+pnpm test        # vitest: tests/unit (node, pure logic) and tests/nuxt (Nuxt env + happy-dom, components)
 pnpm build
 ```
 

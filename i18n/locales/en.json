@@ -11,9 +11,37 @@
       "toDark": "Switch to dark theme",
       "toLight": "Switch to light theme"
     },
-    "locale": "Switch language to {language}"
+    "locale": "Switch language to {language}",
+    "resetChat": "Reset chat"
   },
-  "home": {
-    "placeholder": "The chat will be here"
+  "chat": {
+    "greeting": "Hi! I'm an AI assistant. I know everything about the experience of {name}, {title}.\n\nAsk me anything, tell me who you are looking for, or upload a vacancy and I'll estimate how well it matches.",
+    "actions": {
+      "showCv": "Show CV",
+      "lookingFor": "Who are you looking for?",
+      "downloadCv": "Download CV",
+      "uploadVacancy": "Upload a vacancy"
+    },
+    "input": {
+      "placeholder": "Ask about experience, skills, projects…",
+      "send": "Send",
+      "attach": "Attach a vacancy (PDF, DOCX, MD, TXT)"
+    },
+    "log": "Conversation",
+    "typing": "Assistant is typing",
+    "stub": {
+      "reply": "The AI assistant is almost ready: soon I'll answer questions like this one. Meanwhile, try the buttons above the input.",
+      "soon": "This feature is coming soon."
+    }
+  },
+  "about": {
+    "open": "About this project",
+    "title": "About this project",
+    "description": "A CV of a fullstack engineer, made as a chat with an AI assistant that knows his experience.",
+    "howTitle": "How it works",
+    "how": "Nuxt 4 with SSR, the Vercel AI SDK and models via OpenRouter. Besides text, the assistant answers with interactive blocks: CV sections, questions with options, a vacancy match report.",
+    "privacyTitle": "Privacy",
+    "privacy": "The chat history is stored only in your browser. The server receives only what is needed for an answer; uploaded files are not stored.",
+    "source": "Source code on GitHub"
   }
 }

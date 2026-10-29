@@ -3,8 +3,10 @@
     <div class="inner">
       <LayoutContactLinks />
       <div class="controls">
+        <LayoutResetChatButton />
         <LayoutLocaleSwitch />
         <LayoutThemeToggle />
+        <LayoutInfoDialog />
       </div>
     </div>
   </header>

@@ -216,7 +216,7 @@ app/
   layouts/default.vue       # TopBar + слот
   components/
     layout/   TopBar, ContactLinks, ThemeToggle, LocaleSwitch, InfoDialog
-    chat/     ChatShell, WelcomeScreen, QuickActions, MessageList, MessageItem,
+    chat/     ChatShell, ChatGreeting, QuickActions, MessageList, MessageItem,
               MessagePart (диспетчер по реестру), ChatInput, AttachmentChip, TypingIndicator
     blocks/   CvHero, CvAbout, CvExperience, CvEducation, CvSkills, DownloadCard,
               QuestionWidget, BriefCard, PriorityWidget, MatchReport
@@ -231,17 +231,17 @@ public/cv/Alexandr_Kozikov_en.pdf, Alexandr_Kozikov_ru.pdf, photo.webp
 ```
 
 UX-детали:
-- Welcome-экран показывается, пока нет сообщений; после первого действия чат занимает экран,
+- Чат начинается с приветствия ассистента (эффект печати) и карточек быстрых действий; после первого действия
   быстрые кнопки остаются компактными чипами над инпутом.
 - Инпут: textarea с авто-ростом, Enter — отправить, Shift+Enter — перенос; слева скрепка
   (accept `.pdf,.docx,.md,.txt`), drag&drop файла на окно; справа send / stop (во время стрима).
 - Пока ждём ответ на клиентский tool, инпут не блокируется — пользователь может ответить текстом.
-- Кнопка «Новый чат» (сброс) — в TopBar.
-- История чата — только в `localStorage` (`useChatPersistence`), «Новый чат» её очищает.
+- Кнопка «Сбросить чат» — в TopBar.
+- История чата — только в `localStorage` (`app/lib/chat-history.ts`), «Сбросить чат» её очищает.
   Хранится сериализованный список сообщений с версией схемы; при несовпадении версии — сброс.
 - Смена языка посреди диалога: UI переводится, новые ответы агента идут на новом языке.
 
-SSR: рендерим каркас, welcome-экран и мета-теги. Чат — клиентский. Для SEO отдельная `/cv`
+SSR: рендерим каркас, приветствие и мета-теги. Чат — клиентский. Для SEO отдельная `/cv`
 страница + `og:image` + JSON-LD `Person`.
 
 ---
