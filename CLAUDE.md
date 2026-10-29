@@ -5,9 +5,11 @@ and `docs/PLAN.md` for the steps. Docs are in Russian, code and comments are in 
 
 ## Process
 
-- Every step has a spec in `docs/specs/<id>-<slug>.md`. Code only after the spec status is `approved`.
-- Work on branch `step/<id>-<slug>`. Do **only** what the spec says. If you need to deviate, stop and ask.
-- Keep diffs small (~300–400 lines of own code, excluding the lockfile and generated shadcn components).
+- A step is one product feature (see the table in `docs/PLAN.md`), usually in its own chat session.
+- Every step has a short spec in `docs/specs/<id>-<slug>.md` (template `docs/specs/_template.md`):
+  goal, scope, key decisions, checks, open questions. Code only after the owner approves it.
+- Work on branch `step/<id>-<slug>`. Do what the spec says. Stop and ask before a big deviation,
+  list small ones in the report.
 - Finish with a report: what was done, how it works under the hood, where to start the review,
   what was not verified, deviations from the spec.
 - The owner reviews and merges. Do not merge, push to `main` or deploy unless asked.
