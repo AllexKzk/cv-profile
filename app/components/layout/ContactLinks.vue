@@ -52,6 +52,6 @@ const links = computed(() => {
 @reference "~/assets/css/main.css";
 
 .contacts {
-  @apply flex items-center gap-0.5;
+  @apply flex items-center gap-1;
 }
 </style>

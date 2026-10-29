@@ -1,32 +1,41 @@
 <script setup lang="ts">
-import type { Locale } from '#shared/cv'
+import { Languages } from '@lucide/vue'
 
-const { locale, locales, setLocale } = useI18n()
+const { locale, locales, setLocale, t } = useI18n()
 
-// Clicking the active item emits an empty value: keep the current locale then
-function onChange(value: unknown) {
-  if (typeof value === 'string' && value && value !== locale.value) {
-    setLocale(value as Locale)
-  }
+// Locales go in a cycle: the button always switches to the next one
+const nextLocale = computed(() => {
+  const index = locales.value.findIndex(item => item.code === locale.value)
+  return locales.value[(index + 1) % locales.value.length]!
+})
+
+const label = computed(() => t('topbar.locale', { language: nextLocale.value.name }))
+
+function switchLocale() {
+  setLocale(nextLocale.value.code)
 }
 </script>
 
 <template>
-  <ToggleGroup
-    type="single"
-    variant="outline"
-    size="sm"
-    :model-value="locale"
-    :aria-label="$t('topbar.locale')"
-    @update:model-value="onChange"
-  >
-    <ToggleGroupItem
-      v-for="item in locales"
-      :key="item.code"
-      :value="item.code"
-      :aria-label="item.name"
-    >
-      {{ item.code.toUpperCase() }}
-    </ToggleGroupItem>
-  </ToggleGroup>
+  <Tooltip>
+    <TooltipTrigger as-child>
+      <Button
+        variant="ghost"
+        :aria-label="label"
+        @click="switchLocale"
+      >
+        <Languages />
+        <span class="code">{{ locale }}</span>
+      </Button>
+    </TooltipTrigger>
+    <TooltipContent>{{ label }}</TooltipContent>
+  </Tooltip>
 </template>
+
+<style scoped>
+@reference "~/assets/css/main.css";
+
+.code {
+  @apply uppercase;
+}
+</style>

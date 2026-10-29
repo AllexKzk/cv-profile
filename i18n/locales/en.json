@@ -11,7 +11,7 @@
       "toDark": "Switch to dark theme",
       "toLight": "Switch to light theme"
     },
-    "locale": "Language"
+    "locale": "Switch language to {language}"
   },
   "home": {
     "placeholder": "The chat will be here"
