@@ -31,7 +31,7 @@
 | 0.2 | Tailwind v4 + shadcn-vue + color-mode + шрифты | done |
 | 0.3 | i18n (en/ru) + `CLAUDE.md` + `.env.example` + GitHub + Vercel | done |
 | 1.1 | Модель данных резюме: zod-схема, EN/RU, `getCv(locale)` | done |
-| 1.2 | Layout + TopBar: контакты, тема, язык | review |
+| 1.2 | Layout + TopBar: контакты, тема, язык | done |
 
 ### Дальше
 | ID | Фича | Что входит | Зависит от | Статус |
