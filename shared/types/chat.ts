@@ -5,10 +5,17 @@ import { z } from 'zod'
 export const CV_SECTIONS = ['hero', 'about', 'experience', 'education', 'skills'] as const
 export type CvSection = typeof CV_SECTIONS[number]
 
+// A CV section to show. `items` narrows a list section to some of its entries by id
+// (experience: one or a few jobs); without it the whole section is shown.
+const cvSectionSchema = z.object({
+  section: z.enum(CV_SECTIONS),
+  items: z.array(z.string().max(64)).max(10).optional(),
+})
+
 // Data parts (`data-<name>`) added by local scenarios. They reference CV data instead of copying it,
 // so a shown CV follows the current locale and stored history stays small.
 export const cvDataSchemas = {
-  cv: z.object({ section: z.enum(CV_SECTIONS) }),
+  cv: cvSectionSchema,
   download: z.object({}),
 }
 
@@ -16,7 +23,6 @@ export type CvDataParts = { [K in keyof typeof cvDataSchemas]: z.infer<typeof cv
 
 // Tools the agent can call. Schemas live here so the server tool, stored history and
 // the client share one definition.
-const cvSectionSchema = z.object({ section: z.enum(CV_SECTIONS) })
 
 export const cvToolSchemas = {
   // Server tool: the agent shows a CV block instead of retelling it

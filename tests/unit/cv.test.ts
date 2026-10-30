@@ -38,6 +38,19 @@ describe('buildCv', () => {
     expect(() => buildCv('en', common, { ...en, experience: rest })).toThrow(/missing \[cyno-one\]/)
   })
 
+  it('merges products with their descriptions', () => {
+    const job = getCv('ru').experience.find(item => item.id === 'orion-soft')!
+    expect(job.products.map(p => p.name)).toEqual(['Nova', 'Cluster Manager', 'StarVault'])
+    expect(job.products.every(p => p.description.length > 0)).toBe(true)
+  })
+
+  it('fails when a product has no description', () => {
+    const { nova: _removed, ...products } = en.experience['orion-soft'].products
+    const texts = { ...en, experience: { ...en.experience, 'orion-soft': { ...en.experience['orion-soft'], products } } }
+
+    expect(() => buildCv('en', common, texts)).toThrow(/orion-soft\.products.*missing \[nova\]/)
+  })
+
   it('fails when texts have an unknown skill group', () => {
     const texts = { ...en, skillGroups: { ...en.skillGroups, extra: 'Extra' } }
 

@@ -52,7 +52,15 @@ export function buildCv(locale: Locale, commonInput: CvCommonInput, textsInput: 
     contacts: data.contacts,
     pdf: data.files.pdf[locale],
     about: t.about,
-    experience: data.experience.map(item => ({ ...item, ...t.experience[item.id] })),
+    experience: data.experience.map((item) => {
+      const texts = t.experience[item.id]!
+      assertSameIds(`experience.${item.id}.products`, item.products.map(p => p.id), Object.keys(texts.products), locale)
+      return {
+        ...item,
+        ...texts,
+        products: item.products.map(product => ({ ...product, description: texts.products[product.id]! })),
+      }
+    }),
     education: data.education.map(item => ({ ...item, ...t.education[item.id] })),
     skills: data.skills.map(group => ({ ...group, name: t.skillGroups[group.id] })),
     languages: t.languages,

@@ -26,9 +26,15 @@ export function serializeCv(cv: Cv, now: Date = new Date()): string {
   for (const job of cv.experience) {
     lines.push(
       '',
-      `### ${job.role} — ${job.company}, ${period(job.start, job.end)}`,
+      `### ${job.role} — ${job.company}, ${period(job.start, job.end)} [job id: ${job.id}]`,
       job.summary,
-      ...job.highlights.map(item => `- ${item}`),
+    )
+    if (job.products.length) {
+      lines.push('Products:', ...job.products.map(product => `- ${product.name}: ${product.description}`))
+    }
+    lines.push(
+      'Achievements:',
+      ...job.highlights.map(item => `- ${item.title}${item.details ? `. ${item.details}` : ''}`),
       `Stack: ${job.stack.join(', ')}`,
     )
   }

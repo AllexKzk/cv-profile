@@ -30,5 +30,7 @@ describe('system prompt', () => {
     const text = serializeCv(getCv('en'), now)
     expect(text).toMatch(/Total experience: \d+\+ years/)
     expect(text).toContain('Stack:')
+    expect(text).toContain('[job id: orion-soft]')
+    expect(text).toContain('- Nova: ')
   })
 })

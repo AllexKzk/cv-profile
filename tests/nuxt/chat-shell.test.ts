@@ -91,7 +91,25 @@ describe('chat shell', () => {
     await useCvChat().sendMessage({ text: 'Where did he work?' })
     await flushPromises()
 
-    expect(wrapper.find('.message.assistant').text()).toContain('ORION SOFT')
+    expect(wrapper.find('.message.assistant').text()).toContain('Orion Soft')
+    expect(wrapper.findAll('.message.assistant .job')).toHaveLength(3)
+  })
+
+  it('shows only the jobs the agent picked', async () => {
+    const output = { section: 'experience' as const, items: ['cyno-one', 'unknown'] }
+    mockApi([
+      { type: 'start' },
+      { type: 'tool-input-available', toolCallId: 'c1', toolName: 'showCvSection', input: output },
+      { type: 'tool-output-available', toolCallId: 'c1', output },
+      { type: 'finish' },
+    ])
+    const wrapper = await mountInApp(ChatShell)
+    await useCvChat().sendMessage({ text: 'What did he do at CYNO.ONE?' })
+    await flushPromises()
+
+    const jobs = wrapper.findAll('.message.assistant .job')
+    expect(jobs).toHaveLength(1)
+    expect(jobs[0]!.text()).toContain('CYNO.ONE')
   })
 
   it('shows a refused request as an error and retries it', async () => {

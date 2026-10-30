@@ -13,11 +13,20 @@ const props = defineProps<{ part: CvDataPart<'cv'> | CvToolPart<'showCvSection'>
 
 const cv = useCv()
 
-const section = computed(() => {
+const shown = computed(() => {
   const part = props.part
-  if (part.type === 'data-cv') return part.data.section
+  if (part.type === 'data-cv') return part.data
   // Nothing to show while the tool call is streaming in; it resolves at once
-  return part.state === 'output-available' ? part.output.section : undefined
+  return part.state === 'output-available' ? part.output : undefined
+})
+const section = computed(() => shown.value?.section)
+
+// Jobs picked by id; unknown ids are skipped, and if none is left the whole list is shown
+const jobs = computed(() => {
+  const all = cv.value.experience
+  const ids = shown.value?.items
+  const picked = ids?.length ? all.filter(job => ids.includes(job.id)) : []
+  return picked.length ? picked : all
 })
 
 const block = computed(() => {
@@ -31,7 +40,7 @@ const block = computed(() => {
     case 'about':
       return { component: CvAbout, props: { paragraphs: data.about } }
     case 'experience':
-      return { component: CvExperience, props: { items: data.experience } }
+      return { component: CvExperience, props: { items: jobs.value } }
     case 'education':
       return { component: CvEducation, props: { items: data.education, languages: data.languages } }
     case 'skills':

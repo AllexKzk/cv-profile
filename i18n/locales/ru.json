@@ -78,6 +78,8 @@
     "download": {
       "updated": "Обновлено: {date}",
       "button": "Скачать"
-    }
+    },
+    "products": "Продукты",
+    "achievements": "Достижения"
   }
 }

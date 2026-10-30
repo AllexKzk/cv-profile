@@ -60,6 +60,14 @@ describe('handleChat', () => {
     expect(answer.parts.at(-1)).toMatchObject({ type: 'text', text: 'Here is the work history.' })
   })
 
+  it('passes picked jobs through to the client', async () => {
+    const model = mockModel(toolStep('experience', 0.001, ['cyno-one']), textStep('Ok'))
+    const answer = await readAnswer(await handleChat(context({ model })))
+    expect(answer.parts.find(p => p.type === 'tool-showCvSection')).toMatchObject({
+      output: { section: 'experience', items: ['cyno-one'] },
+    })
+  })
+
   it('sends the system prompt, history notes and limits to the model', async () => {
     const model = mockModel(textStep('Hi'))
     const body = requestBody([

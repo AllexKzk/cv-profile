@@ -31,10 +31,11 @@ describe('CV in chat', () => {
       .toEqual(['hero', 'about', 'experience', 'education', 'skills'])
 
     const text = wrapper.text()
-    expect(wrapper.findAll('.card')).toHaveLength(5)
+    // Hero, about, education and skills are one card each, experience is a card per job
+    expect(wrapper.findAll('.card')).toHaveLength(4 + 3)
     expect(text).toContain('Alexandr Kozikov')
     expect(text).toMatch(/\d\+ years of experience/)
-    expect(text).toContain('ORION SOFT')
+    expect(text).toContain('Orion Soft')
     expect(text).toContain('present')
     // Fresh answers animate in, part by part
     expect(wrapper.findAll('.appear')).toHaveLength(5)

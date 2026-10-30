@@ -78,6 +78,8 @@
     "download": {
       "updated": "Updated {date}",
       "button": "Download"
-    }
+    },
+    "products": "Products",
+    "achievements": "Achievements"
   }
 }

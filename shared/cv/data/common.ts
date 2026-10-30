@@ -27,23 +27,40 @@ export const common = {
   experience: [
     {
       id: 'orion-soft',
-      company: 'ORION SOFT',
+      company: 'Orion Soft',
+      url: 'https://www.orionsoft.ru/',
       start: '2024-10',
       end: null,
-      stack: ['TypeScript', 'React', 'Redux', 'MUI', 'SCSS', 'GraphQL', 'Cypress', 'Kubernetes', 'Vue', 'Git', 'Docker'],
+      products: [
+        { id: 'nova', name: 'Nova', url: 'https://www.orionsoft.ru/nova' },
+        { id: 'cluster-manager', name: 'Cluster Manager', url: 'https://wiki.orionsoft.ru/nova/latest/admin-guide/cluster-manager/' },
+        { id: 'starvault', name: 'StarVault', url: 'https://www.orionsoft.ru/starvault' },
+      ],
+      stack: ['TypeScript', 'Go', 'React', 'Redux', 'TanStack', 'Jest', 'Playwright', 'Vue', 'SCSS', 'GraphQL', 'Kubernetes', 'Module Federation', 'Webpack', 'Git', 'Docker'],
     },
     {
       id: 'cyno-one',
       company: 'CYNO.ONE',
+      url: 'https://www.linkedin.com/company/cyno-one/',
       start: '2022-07',
       end: '2024-10',
-      stack: ['TypeScript', 'React', 'Next.js', 'Redux Toolkit', 'Zustand', 'Vue', 'Nuxt', 'Pinia', 'Tailwind', 'SCSS'],
+      products: [
+        { id: 'ton-tarot', name: 'TON Tarot', url: 'https://www.findmini.app/ru/tontarot_bot/' },
+        { id: 'dogs', name: 'Dogs', url: 'https://www.findmini.app/dogs_dogshouse_bot/' },
+        { id: 'gazprom', name: 'Gazprom Burenie' },
+      ],
+      stack: ['TypeScript', 'React', 'Next.js', 'Redux', 'TanStack', 'Zustand', 'Vue', 'Nuxt', 'Pinia', 'Tailwind', 'SCSS'],
     },
     {
       id: 'etu-leti-is',
-      company: 'ETU LETI IS',
+      company: 'ETU LETI',
+      url: 'https://www.linkedin.com/school/spbetu/',
       start: '2021-04',
       end: '2022-07',
+      products: [
+        { id: 'portfolio', name: 'Portfolio', url: 'https://digital.etu.ru/doku.php?id=portfolio:start' },
+        { id: 'trajectories', name: 'Trajectories', url: 'https://digital.etu.ru/doku.php?id=iot:start' },
+      ],
       stack: ['TypeScript', 'Vue', 'Pinia', 'SCSS', 'Bootstrap', 'NestJS', 'PostgreSQL', 'MongoDB', 'Jest'],
     },
   ],
@@ -55,12 +72,9 @@ export const common = {
       id: 'main',
       items: [
         { name: 'TypeScript', aliases: ['TS'], main: true },
-        { name: 'Vue', aliases: ['Vue.js', 'VueJS', 'Vue 3'], main: true },
-        { name: 'Nuxt', aliases: ['Nuxt.js', 'NuxtJS'], main: true },
-        { name: 'Pinia', main: true },
-        { name: 'Vuex', main: true },
+        { name: 'React / Next.js', aliases: ['React', 'React.js', 'ReactJS', 'Next.js', 'Next', 'NextJS'], main: true },
+        { name: 'Vue / Nuxt', aliases: ['Vue', 'Vue.js', 'VueJS', 'Vue 3', 'Nuxt', 'Nuxt.js', 'NuxtJS'], main: true },
         { name: 'HTML5', aliases: ['HTML'], main: true },
-        { name: 'CSS3', aliases: ['CSS'], main: true },
         { name: 'SCSS', aliases: ['Sass'], main: true },
       ],
     },
@@ -68,21 +82,11 @@ export const common = {
       id: 'also',
       items: [
         { name: 'JavaScript', aliases: ['JS', 'ES6'] },
-        { name: 'React', aliases: ['React.js', 'ReactJS'] },
-        { name: 'Next.js', aliases: ['Next', 'NextJS'] },
         { name: 'Redux Toolkit', aliases: ['Redux', 'RTK'] },
         { name: 'Zustand' },
-      ],
-    },
-    {
-      id: 'backend',
-      items: [
-        { name: 'Node.js', aliases: ['Node', 'NodeJS'] },
-        { name: 'Express', aliases: ['Express.js'] },
-        { name: 'NestJS', aliases: ['Nest'] },
-        { name: 'PostgreSQL', aliases: ['Postgres'] },
-        { name: 'MongoDB', aliases: ['Mongo'] },
-        { name: 'Supabase' },
+        { name: 'TanStack', aliases: ['TanStack Query', 'React Query'] },
+        { name: 'Vuex / Pinia', aliases: ['Vuex', 'Pinia'] },
+        { name: 'CSS3', aliases: ['CSS'] },
       ],
     },
     {
@@ -93,6 +97,7 @@ export const common = {
         { name: 'MUI', aliases: ['Material UI'] },
         { name: 'Bootstrap' },
         { name: 'PatternFly' },
+        { name: 'Storybook' },
       ],
     },
     {
@@ -100,8 +105,9 @@ export const common = {
       items: [
         { name: 'REST API', aliases: ['REST'] },
         { name: 'GraphQL' },
-        { name: 'WebSockets', aliases: ['WebSocket', 'WS'] },
+        { name: 'WebSocket', aliases: ['WebSockets', 'WS'] },
         { name: 'Micro-frontends', aliases: ['Microfrontends', 'MFE', 'Module Federation'] },
+        { name: 'Monolith' },
       ],
     },
     {
@@ -109,6 +115,7 @@ export const common = {
       items: [
         { name: 'Jest' },
         { name: 'Cypress' },
+        { name: 'Playwright' },
         { name: 'Lighthouse' },
         { name: 'Core Web Vitals', aliases: ['CWV'] },
       ],
@@ -126,11 +133,23 @@ export const common = {
       ],
     },
     {
+      id: 'backend',
+      items: [
+        { name: 'Node.js', aliases: ['Node', 'NodeJS'] },
+        { name: 'Express', aliases: ['Express.js'] },
+        { name: 'NestJS', aliases: ['Nest'] },
+        { name: 'PostgreSQL', aliases: ['Postgres'] },
+        { name: 'MongoDB', aliases: ['Mongo'] },
+        { name: 'Supabase' },
+      ],
+    },
+    {
       id: 'ai',
       items: [
+        { name: 'Claude Code' },
+        { name: 'Claude Design' },
         { name: 'Cursor' },
         { name: 'Ollama' },
-        { name: 'Claude' },
       ],
     },
   ],

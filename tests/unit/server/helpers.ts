@@ -27,10 +27,10 @@ export function textStep(text: string, cost = 0.001): LanguageModelV4StreamPart[
   ]
 }
 
-export function toolStep(section: string, cost = 0.001): LanguageModelV4StreamPart[] {
+export function toolStep(section: string, cost = 0.001, items?: string[]): LanguageModelV4StreamPart[] {
   return [
     { type: 'stream-start', warnings: [] },
-    { type: 'tool-call', toolCallId: 'call-1', toolName: 'showCvSection', input: JSON.stringify({ section }) },
+    { type: 'tool-call', toolCallId: 'call-1', toolName: 'showCvSection', input: JSON.stringify({ section, items }) },
     finish('tool-calls', cost),
   ]
 }

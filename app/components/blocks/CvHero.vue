@@ -18,45 +18,45 @@ const initials = computed(() => props.person.name.split(/\s+/).map(word => word[
 <template>
   <CvCard>
     <div class="hero">
-      <Avatar class="size-20 text-xl">
+      <Avatar class="size-14 shrink-0 text-lg">
         <AvatarImage
           :src="person.photo"
           :alt="person.name"
         />
         <AvatarFallback>{{ initials }}</AvatarFallback>
       </Avatar>
-      <div class="info">
+      <div class="identity">
         <h2 class="name">
           {{ person.name }}
         </h2>
         <p class="title">
           {{ person.title }}
         </p>
-        <ul class="facts">
-          <li class="fact">
-            <Briefcase class="icon" />
-            {{ $t('cv.hero.experience', experienceYears) }}
-          </li>
-          <li class="fact">
-            <Clock class="icon" />
-            {{ $t('cv.hero.timezone', { timezone: person.timezone }) }}
-          </li>
-        </ul>
-        <ul
-          class="formats"
-          :aria-label="$t('cv.hero.openTo')"
-        >
-          <li
-            v-for="format in person.openTo"
-            :key="format"
-          >
-            <Badge variant="outline">
-              {{ $t(`cv.workFormat.${format}`) }}
-            </Badge>
-          </li>
-        </ul>
       </div>
     </div>
+    <ul class="facts">
+      <li class="fact">
+        <Briefcase class="icon" />
+        {{ $t('cv.hero.experience', experienceYears) }}
+      </li>
+      <li class="fact">
+        <Clock class="icon" />
+        {{ $t('cv.hero.timezone', { timezone: person.timezone }) }}
+      </li>
+    </ul>
+    <ul
+      class="formats"
+      :aria-label="$t('cv.hero.openTo')"
+    >
+      <li
+        v-for="format in person.openTo"
+        :key="format"
+      >
+        <Badge variant="outline">
+          {{ $t(`cv.workFormat.${format}`) }}
+        </Badge>
+      </li>
+    </ul>
     <nav
       class="contacts"
       :aria-label="$t('topbar.contacts.title')"
@@ -85,11 +85,12 @@ const initials = computed(() => props.person.name.split(/\s+/).map(word => word[
 @reference "~/assets/css/main.css";
 
 .hero {
-  @apply flex flex-col gap-4 sm:flex-row sm:items-start;
+  @apply flex items-center gap-4;
 }
 
-.info {
-  @apply flex min-w-0 flex-col gap-1;
+/* Avatar, name and title share one row on every screen size */
+.identity {
+  @apply flex min-w-0 flex-col;
 }
 
 .name {
@@ -101,7 +102,7 @@ const initials = computed(() => props.person.name.split(/\s+/).map(word => word[
 }
 
 .facts {
-  @apply mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm;
+  @apply mt-4 flex flex-wrap gap-x-4 gap-y-1 text-sm;
 }
 
 .fact {

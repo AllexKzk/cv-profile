@@ -26,6 +26,12 @@ const SkillItemSchema = z.object({
 
 const LanguageSchema = z.object({ name: z.string(), level: z.string() })
 
+// An achievement: a short claim and an optional line with the result or details
+const HighlightSchema = z.object({
+  title: z.string().min(1),
+  details: z.string().min(1).optional(),
+})
+
 // Language-independent facts, shared by all locales
 export const CvCommonSchema = z.object({
   person: z.object({
@@ -45,6 +51,12 @@ export const CvCommonSchema = z.object({
     start: YearMonthSchema,
     // null means "present"
     end: YearMonthSchema.nullable(),
+    // Products the person worked on; descriptions come from locale texts by id
+    products: z.array(z.object({
+      id: z.string().min(1),
+      name: z.string().min(1),
+      url: z.url().optional(),
+    })).default([]),
     stack: z.array(z.string()),
   })),
   education: z.array(z.object({
@@ -66,7 +78,9 @@ export const CvTextsSchema = z.object({
   experience: z.record(z.string(), z.object({
     role: z.string().min(1),
     summary: z.string().min(1),
-    highlights: z.array(z.string().min(1)),
+    // Product id → one-line description
+    products: z.record(z.string(), z.string().min(1)).default({}),
+    highlights: z.array(HighlightSchema),
   })),
   education: z.record(z.string(), z.object({
     degree: z.string().min(1),
@@ -98,7 +112,13 @@ export const CvSchema = z.object({
     stack: z.array(z.string()),
     role: z.string(),
     summary: z.string(),
-    highlights: z.array(z.string()),
+    products: z.array(z.object({
+      id: z.string(),
+      name: z.string(),
+      url: z.url().optional(),
+      description: z.string(),
+    })),
+    highlights: z.array(HighlightSchema),
   })),
   education: z.array(z.object({
     id: z.string(),
@@ -120,6 +140,7 @@ export type CvCommonInput = z.input<typeof CvCommonSchema>
 export type CvTextsInput = z.input<typeof CvTextsSchema>
 export type Cv = z.output<typeof CvSchema>
 export type CvExperience = Cv['experience'][number]
+export type CvHighlight = CvExperience['highlights'][number]
 export type CvEducation = Cv['education'][number]
 export type CvSkillGroup = Cv['skills'][number]
 export type WorkFormat = z.output<typeof WorkFormatSchema>
