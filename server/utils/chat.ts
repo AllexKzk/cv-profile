@@ -77,7 +77,13 @@ export async function handleChat(ctx: ChatContext): Promise<Response> {
     maxOutputTokens: MAX_OUTPUT_TOKENS,
     onFinish: async ({ steps, totalUsage }) => {
       const cost = answerCost(steps)
-      console.info('[chat] usage', JSON.stringify({ ...totalUsage, cost, steps: steps.length }))
+      console.info('[chat] usage', JSON.stringify({
+        input: totalUsage.inputTokens,
+        output: totalUsage.outputTokens,
+        reasoning: totalUsage.outputTokenDetails?.reasoningTokens,
+        cost,
+        steps: steps.length,
+      }))
       await ctx.limiter.record(ctx.ip, cost)
     },
   })
