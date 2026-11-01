@@ -1,7 +1,7 @@
 // Live background renderer: one full-screen WebGL fragment shader at half resolution, or a
 // single coarse Canvas 2D frame when WebGL is unavailable. Loaded lazily (dynamic import)
 // after hydration.
-import { FIELD, columnAlpha, createFrameGate, fieldGlsl, flutedAt, mixRgb } from './field'
+import { FIELD, blockLight, columnAlpha, createFrameGate, fieldGlsl, flutedAt, mixRgb } from './field'
 import type { GlassRect, Rgb } from './field'
 
 /** How opaque the field is: in the chat column, beyond it (desktop sides), inside glass blocks. */
@@ -106,7 +106,7 @@ uniform vec3 uColor;
 uniform vec2 uOffset;
 uniform vec4 uRipples[${FIELD.ripple.max}];
 uniform vec4 uGlass[${FIELD.glass.max}];
-uniform float uGlassRadius[${FIELD.glass.max}];
+uniform vec2 uGlassShape[${FIELD.glass.max}];
 uniform vec2 uColumn;
 // Opacity in the chat column, beyond it, inside glass blocks
 uniform vec3 uOpacity;
@@ -116,10 +116,11 @@ ${fieldGlsl()}
 void main() {
   // CSS px with y down, like the TS copy in field.ts
   vec2 p = vec2(gl_FragCoord.x, uSize.y * uScale - gl_FragCoord.y) / uScale;
-  vec4 g = glass(p);
+  float average;
+  vec4 g = glass(p, average);
   float v = flutedAt(g.xy, uSize, uTime, uOffset);
-  // Inside a glass block the ribs blur away into a soft glow, except along the lens edge
-  if (g.z < 0.999) v = mix(frostedAt(g.xy, uSize, uTime, uOffset), v, g.z);
+  // Inside a glass block the ribs blur away into an even glow, except along the lens edge
+  if (g.z < 0.999) v = mix(frostedAt(g.xy, uSize, uTime, uOffset, average), v, g.z);
   float opacity = mix(columnAlpha(p.x, uColumn, uOpacity.xy), uOpacity.z, g.w);
   float a = v * opacity;
   // The canvas is premultiplied: the page background shows through
@@ -143,7 +144,10 @@ function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, option
   const tilt = { x: 0, y: 0, targetX: 0, targetY: 0 }
   let ripples: Array<{ x: number, y: number, start: number }> = []
   const glass = new Float32Array(FIELD.glass.max * 4)
-  const glassRadius = new Float32Array(FIELD.glass.max)
+  // Corner radius and averaged light per block; the light is refreshed on every frame
+  const glassShape = new Float32Array(FIELD.glass.max * 2)
+  let glassRects: readonly GlassRect[] = []
+  let size = { width: 1, height: 1 }
   let column: [number, number] = [0, 1e6]
   // One more frame is needed (glass blocks moved, the column changed) even if nothing animates
   let dirty = false
@@ -189,21 +193,22 @@ function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, option
       offset: loc('uOffset'),
       ripples: loc('uRipples'),
       glass: loc('uGlass'),
-      glassRadius: loc('uGlassRadius'),
+      glassShape: loc('uGlassShape'),
       column: loc('uColumn'),
       opacity: loc('uOpacity'),
     }
   }
 
   function resize() {
-    const size = bufferSize(canvas, FIELD.renderScale)
-    if (canvas.width !== size.width || canvas.height !== size.height) {
-      canvas.width = size.width
-      canvas.height = size.height
+    const buffer = bufferSize(canvas, FIELD.renderScale)
+    if (canvas.width !== buffer.width || canvas.height !== buffer.height) {
+      canvas.width = buffer.width
+      canvas.height = buffer.height
     }
     if (lost) return
-    gl.viewport(0, 0, size.width, size.height)
-    gl.uniform2f(uniforms.size, size.width / FIELD.renderScale, size.height / FIELD.renderScale)
+    gl.viewport(0, 0, buffer.width, buffer.height)
+    size = { width: buffer.width / FIELD.renderScale, height: buffer.height / FIELD.renderScale }
+    gl.uniform2f(uniforms.size, size.width, size.height)
     draw(performance.now())
   }
 
@@ -216,11 +221,16 @@ function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, option
     })
     const tiltX = animated ? tilt.x : 0
     const tiltY = animated ? tilt.y : 0
-    gl.uniform1f(uniforms.time, lightTime + (tiltX + tiltY) * FIELD.tilt.time)
-    gl.uniform2f(uniforms.offset, tiltX * FIELD.tilt.offset, tiltY * FIELD.tilt.offset)
+    const time = lightTime + (tiltX + tiltY) * FIELD.tilt.time
+    const offset: [number, number] = [tiltX * FIELD.tilt.offset, tiltY * FIELD.tilt.offset]
+    glassRects.forEach((r, k) => {
+      glassShape[k * 2 + 1] = blockLight(r, size.width, size.height, time, offset)
+    })
+    gl.uniform1f(uniforms.time, time)
+    gl.uniform2f(uniforms.offset, offset[0], offset[1])
     gl.uniform4fv(uniforms.ripples, packed)
     gl.uniform4fv(uniforms.glass, glass)
-    gl.uniform1fv(uniforms.glassRadius, glassRadius)
+    gl.uniform2fv(uniforms.glassShape, glassShape)
     gl.uniform2f(uniforms.column, column[0], column[1])
     gl.uniform3f(uniforms.opacity, opacity.column, opacity.side, opacity.glass)
     gl.uniform3f(uniforms.color, color[0], color[1], color[2])
@@ -331,10 +341,11 @@ function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, option
     },
     setGlass(rects) {
       glass.fill(0)
-      glassRadius.fill(0)
-      rects.slice(0, FIELD.glass.max).forEach((r, k) => {
+      glassShape.fill(0)
+      glassRects = rects.slice(0, FIELD.glass.max)
+      glassRects.forEach((r, k) => {
         glass.set([r.x, r.y, r.w, r.h], k * 4)
-        glassRadius[k] = r.r
+        glassShape[k * 2] = r.r
       })
       dirty = true
       sync()
