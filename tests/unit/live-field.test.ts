@@ -9,7 +9,6 @@ import {
   ribShade,
   ribTraits,
   rippleAt,
-  blockLight,
   columnAlpha,
   frostedAt,
   glassAt,
@@ -193,26 +192,6 @@ describe('frostedAt', () => {
     }
     // No rib seams: neighbouring points barely differ
     expect(Math.abs(frostedAt(640, 400, w, h, 40) - frostedAt(641, 400, w, h, 40))).toBeLessThan(0.01)
-  })
-})
-
-describe('blockLight', () => {
-  const [w, h] = [1280, 800]
-  const card = { x: 300, y: 200, w: 600, h: 300, r: 14 }
-
-  it('averages the light over the block', () => {
-    const average = blockLight(card, w, h, FIELD.staticTime)
-    expect(average).toBeGreaterThanOrEqual(0)
-    expect(average).toBeLessThanOrEqual(1)
-  })
-
-  it('flattens the frosted inside towards the block average', () => {
-    const average = blockLight(card, w, h, FIELD.staticTime)
-    const at = (x: number) => frostedAt(x, 350, w, h, FIELD.staticTime, [0, 0], [], average)
-    const free = (x: number) => frostedAt(x, 350, w, h, FIELD.staticTime)
-    const spread = Math.abs(at(320) - at(880))
-    const freeSpread = Math.abs(free(320) - free(880))
-    expect(spread).toBeLessThanOrEqual(freeSpread * (1 - FIELD.glass.flatten) + 1e-9)
   })
 })
 

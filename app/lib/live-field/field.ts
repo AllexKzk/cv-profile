@@ -25,11 +25,9 @@ export const FIELD = {
   // Liquid glass blocks (marked data-glass). Inside, the picture is frosted: the ribs average
   // out to a soft glow (`frost` is the average rib shading). In a `bevelPx` band along the edge
   // the glass works as a lens: it shows the picture from up to `pullPx` beyond its edge, squeezed
-  // and sharp. `magnify` slightly enlarges what is behind the middle of the block. `flatten` is
-  // how much of the frosted inside is the light averaged over the whole block (the rest follows
-  // the light under each point), so a block glows evenly instead of showing a strong gradient.
+  // and sharp. `magnify` slightly enlarges what is behind the middle of the block
   // Up to `max` blocks at once (uniform budget: 2 vectors per block, fine even on old phones)
-  glass: { max: 16, bevelPx: 22, pullPx: 22, magnify: 0.03, frost: 0.47, flatten: 0.85 },
+  glass: { max: 16, bevelPx: 22, pullPx: 22, magnify: 0.03, frost: 0.47 },
   // Desktop: outside the chat column the field gets its own opacity, fading in over this many px
   sideFadePx: 120,
 } as const
@@ -239,23 +237,8 @@ export function flutedAt(
 }
 
 /**
- * Light averaged over a glass block (a 3 × 3 grid of samples): what a very strong blur would
- * leave of it. Computed on the CPU once per frame for each block and passed to the shader.
- */
-export function blockLight(rect: GlassRect, w: number, h: number, t: number, offset: readonly [number, number] = [0, 0]): number {
-  let sum = 0
-  for (const fx of [1 / 6, 1 / 2, 5 / 6]) {
-    for (const fy of [1 / 6, 1 / 2, 5 / 6]) {
-      sum += lightAt((rect.x + rect.w * fx) / w + offset[0], (rect.y + rect.h * fy) / h + offset[1], w / h, t)
-    }
-  }
-  return sum / 9
-}
-
-/**
  * The picture behind frosted glass at (x, y): the light without ribs, at the average rib
- * shading, as if the ribs were blurred away. `average` is the block's blockLight(): it flattens
- * the light across the block.
+ * shading, as if the ribs were blurred away.
  */
 export function frostedAt(
   x: number,
@@ -265,11 +248,9 @@ export function frostedAt(
   t: number,
   offset: readonly [number, number] = [0, 0],
   ripples: readonly Ripple[] = [],
-  average?: number,
 ): number {
   const [pushX, pushY, glow] = rippleAt(x, y, ripples)
-  const local = lightAt((x + pushX) / w + offset[0], (y + pushY) / h + offset[1], w / h, t)
-  const light = average === undefined ? local : average + (local - average) * (1 - FIELD.glass.flatten)
+  const light = lightAt((x + pushX) / w + offset[0], (y + pushY) / h + offset[1], w / h, t)
   return Math.min(light + glow * FIELD.ripple.glow, 1) * FIELD.glass.frost
 }
 
@@ -342,10 +323,9 @@ float flutedAt(vec2 p, vec2 size, float t, vec2 offset) {
   return min(light * ribShade(u, glint, rim), 1.0);
 }
 
-float frostedAt(vec2 p, vec2 size, float t, vec2 offset, float average) {
+float frostedAt(vec2 p, vec2 size, float t, vec2 offset) {
   vec3 rp = ripple(p);
-  float local = lightAt((p + rp.xy) / size + offset, size.x / size.y, t);
-  float light = mix(average, local, ${f(Math.round((1 - FIELD.glass.flatten) * 1000) / 1000)});
+  float light = lightAt((p + rp.xy) / size + offset, size.x / size.y, t);
   return min(light + rp.z * ${f(FIELD.ripple.glow)}, 1.0) * ${f(FIELD.glass.frost)};
 }
 
@@ -355,15 +335,12 @@ float boxSdf(vec2 p, vec4 rect, float radius) {
   return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
 }
 
-// Glass blocks: x, y, width, height (CSS px; zero width means unused) and shape: corner radius,
-// light averaged over the block. Declared by the renderer. Returns the sample point, sharpness
-// and an inside flag; 'average' gets the block's averaged light
-vec4 glass(vec2 p, out float average) {
-  average = 0.0;
+// Glass blocks: x, y, width, height (CSS px; zero width means unused) and corner radii.
+// Declared by the renderer. Returns the sample point, sharpness and an inside flag
+vec4 glass(vec2 p) {
   for (int k = 0; k < ${FIELD.glass.max}; k++) {
     vec4 rect = uGlass[k];
-    float radius = uGlassShape[k].x;
-    average = uGlassShape[k].y;
+    float radius = uGlassRadius[k];
     if (rect.z > 0.0) {
       float d = boxSdf(p, rect, radius);
       if (d < 0.0) {
