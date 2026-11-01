@@ -1,7 +1,7 @@
 import type { Cv } from '#shared/cv'
 import { serializeCv } from '../cv'
 
-const LANGUAGE_NAMES: Record<Cv['locale'], string> = { en: 'English', ru: 'Russian' }
+export const LANGUAGE_NAMES: Record<Cv['locale'], string> = { en: 'English', ru: 'Russian' }
 
 // Shared by every scenario: who the assistant is, the CV and the rules it never breaks.
 // Scenario prompts append their task after it.

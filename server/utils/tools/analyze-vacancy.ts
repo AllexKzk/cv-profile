@@ -36,7 +36,10 @@ export function buildVacancyAnalysis(input: AnalyzeVacancyInput, cv: Cv): Vacanc
     seen.add(key(name))
 
     let { status, evidence } = raw
-    const skill = raw.category === 'stack' ? skills.get(key(name)) : undefined
+    // "Vue 3 (Composition API)" is looked up as is and without the parenthesized part
+    const skill = raw.category === 'stack'
+      ? skills.get(key(name)) ?? skills.get(key(name.replace(/\s*\(.*?\)\s*/g, ' ')))
+      : undefined
     if (skill && status !== 'match') {
       status = 'match'
       evidence = skill

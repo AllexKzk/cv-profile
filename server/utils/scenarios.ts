@@ -2,7 +2,7 @@ import type { Cv } from '#shared/cv'
 import type { ChatScenario } from '#shared/types/chat'
 import { buildBasePrompt } from './prompts/base'
 import { FREE_CHAT_PROMPT } from './prompts/free'
-import { MATCH_PROMPT } from './prompts/match'
+import { buildMatchPrompt } from './prompts/match'
 import { createAnalyzeVacancy } from './tools/analyze-vacancy'
 import { showCvSection } from './tools/show-cv-section'
 
@@ -12,7 +12,8 @@ export const chatTools = (cv: Cv) => ({ showCvSection, analyzeVacancy: createAna
 
 export interface Scenario {
   system: (cv: Cv, now?: Date) => string
-  // Per step: the requirements list of an analysis is longer than a usual answer
+  // Per step, reasoning included: the requirements list of an analysis is longer than a usual
+  // answer, and the model may think for ~1k tokens before writing it
   maxOutputTokens: number
 }
 
@@ -23,7 +24,7 @@ export const scenarios = {
     maxOutputTokens: 800,
   },
   match: {
-    system: (cv, now) => `${buildBasePrompt(cv, now)}\n\n${MATCH_PROMPT}`,
-    maxOutputTokens: 2500,
+    system: (cv, now) => `${buildBasePrompt(cv, now)}\n\n${buildMatchPrompt(cv)}`,
+    maxOutputTokens: 4000,
   },
 } satisfies Record<ChatScenario, Scenario>

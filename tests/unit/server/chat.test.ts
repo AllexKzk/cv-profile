@@ -137,7 +137,7 @@ describe('handleChat', () => {
         state: 'output-available',
         output: { title: 'Senior Frontend Engineer', score: { percent: 50, level: 'partial', mustMissing: ['Go'] } },
       })
-      expect(model.doStreamCalls[0]!.maxOutputTokens).toBe(2500)
+      expect(model.doStreamCalls[0]!.maxOutputTokens).toBe(4000)
       // The model gets the classification back, without the percentage
       const toolResult = JSON.stringify(model.doStreamCalls[1]!.prompt.at(-1))
       expect(toolResult).toContain('Go (must): missing')

@@ -30,8 +30,12 @@ describe('buildVacancyAnalysis', () => {
   })
 
   it('raises a stack requirement to match when the CV lists it under a skill alias', () => {
-    const result = analyze([req('Vue.js', { status: 'missing', evidence: '' }), req('TS', { status: 'partial' })])
-    expect(result.requirements.map(r => r.status)).toEqual(['match', 'match'])
+    const result = analyze([
+      req('Vue.js', { status: 'missing', evidence: '' }),
+      req('TS', { status: 'partial' }),
+      req('Vue 3 (Composition API)', { status: 'partial' }),
+    ])
+    expect(result.requirements.map(r => r.status)).toEqual(['match', 'match', 'match'])
     expect(result.requirements[0]!.evidence).toMatch(/Vue \/ Nuxt$/)
   })
 
