@@ -1,17 +1,7 @@
-// Live background renderer: one WebGL draw call of points, or a single Canvas 2D frame
-// when WebGL is unavailable. Loaded lazily (dynamic import) after hydration.
-import {
-  FIELD,
-  MAX_HEIGHT,
-  createFrameGate,
-  createGrid,
-  dotStyle,
-  fieldHeight,
-  fieldViewProj,
-  heightGlsl,
-  mixRgb,
-  toClip,
-} from './field'
+// Live background renderer: one full-screen WebGL fragment shader at half resolution, or a
+// single coarse Canvas 2D frame when WebGL is unavailable. Loaded lazily (dynamic import)
+// after hydration.
+import { FIELD, createFrameGate, fieldGlsl, flutedAt, mixRgb } from './field'
 import type { Rgb } from './field'
 
 export interface FieldController {
@@ -19,7 +9,7 @@ export interface FieldController {
   setAnimated: (animated: boolean) => void
   /** Pause the loop while the tab is hidden. */
   setVisible: (visible: boolean) => void
-  /** New dot color; animated fields blend into it, static ones redraw at once. */
+  /** New light color; animated fields blend into it, static ones redraw at once. */
   setColor: (color: Rgb) => void
   /** Match the canvas buffer to its CSS size. */
   resize: () => void
@@ -33,14 +23,13 @@ export interface FieldOptions {
   onReady?: () => void
 }
 
-const MAX_DPR = 1.5
 const FPS = 30
 const COLOR_FADE_MS = 300
-// A long pause (hidden tab, slow device) must not jump the waves forward
+// A long pause (hidden tab, slow device) must not jump the light forward
 const MAX_STEP_MS = 100
 
 /**
- * Dot color from the `--field-dot` token. Theme tokens are oklch, the shader needs sRGB:
+ * Light color from the `--field-dot` token. Theme tokens are oklch, the shader needs sRGB:
  * a 1×1 canvas converts any CSS color the browser understands.
  */
 export function readFieldColor(): Rgb {
@@ -58,56 +47,44 @@ export function startField(canvas: HTMLCanvasElement, options: FieldOptions): Fi
   return gl ? startWebGl(canvas, gl, options) : startCanvas2d(canvas, options)
 }
 
-function bufferSize(canvas: HTMLCanvasElement): { width: number, height: number, dpr: number } {
-  const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR)
+// Device pixel ratio is ignored on purpose: the picture is soft, the browser upscales it
+function bufferSize(canvas: HTMLCanvasElement, scale: number): { width: number, height: number } {
   return {
-    width: Math.max(1, Math.round(canvas.clientWidth * dpr)),
-    height: Math.max(1, Math.round(canvas.clientHeight * dpr)),
-    dpr,
+    width: Math.max(1, Math.round(canvas.clientWidth * scale)),
+    height: Math.max(1, Math.round(canvas.clientHeight * scale)),
   }
 }
 
 const VERTEX = `
-attribute vec2 aGrid;
-uniform mat4 uViewProj;
-uniform float uTime;
-uniform float uPointScale;
-uniform float uMaxHeight;
-uniform vec2 uFade;
-varying float vAlpha;
-
-${heightGlsl()}
-
+attribute vec2 aPos;
 void main() {
-  // The wall is z = 0; waves push dots towards the camera
-  float h = height(aGrid, uTime);
-  vec4 clip = uViewProj * vec4(aGrid, h, 1.0);
-  gl_Position = clip;
-  // Same as dotStyle() in field.ts
-  float size = uPointScale / clip.w;
-  gl_PointSize = max(size, 1.0);
-  float depthFade = 1.0 - smoothstep(uFade.x, uFade.y, clip.w);
-  float crest = 0.65 + 0.35 * clamp(h / uMaxHeight * 0.5 + 0.5, 0.0, 1.0);
-  vAlpha = depthFade * crest * min(size, 1.0);
+  gl_Position = vec4(aPos, 0.0, 1.0);
 }
 `
 
 const FRAGMENT = `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
 precision mediump float;
+#endif
+uniform vec2 uSize;
+uniform float uScale;
+uniform float uTime;
 uniform vec3 uColor;
-varying float vAlpha;
+
+${fieldGlsl()}
 
 void main() {
-  float d = length(gl_PointCoord - 0.5);
-  // GLSL smoothstep is undefined for edge0 >= edge1: invert instead of swapping the edges
-  float a = (1.0 - smoothstep(0.3, 0.5, d)) * vAlpha;
+  // CSS px with y down, like the TS copy in field.ts
+  vec2 p = vec2(gl_FragCoord.x, uSize.y * uScale - gl_FragCoord.y) / uScale;
+  float a = flutedAt(p, uSize, uTime);
   // The canvas is premultiplied: the page background shows through
   gl_FragColor = vec4(uColor * a, a);
 }
 `
 
 function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, options: FieldOptions): FieldController {
-  let count = 0
   const gate = createFrameGate(FPS)
 
   let animated = options.animated
@@ -116,12 +93,11 @@ function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, option
   let fadeFrom: Rgb = color
   let fadeTo: Rgb = color
   let fadeStart = 0
-  let waveTime = FIELD.staticTime
+  let lightTime = FIELD.staticTime
   let lastNow = 0
   let frame = 0
   let lost = false
   let ready = false
-  let dpr = 1
   let uniforms: ReturnType<typeof setup>
 
   function compile(type: number, source: string): WebGLShader {
@@ -134,7 +110,7 @@ function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, option
     return shader
   }
 
-  // Program, buffer and uniform locations; run again after a lost context is restored
+  // Program, full-screen triangle and uniform locations; run again after a lost context is restored
   function setup() {
     const program = gl.createProgram()!
     gl.attachShader(program, compile(gl.VERTEX_SHADER, VERTEX))
@@ -146,49 +122,37 @@ function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, option
     gl.useProgram(program)
 
     gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
-    const aGrid = gl.getAttribLocation(program, 'aGrid')
-    gl.enableVertexAttribArray(aGrid)
-    gl.vertexAttribPointer(aGrid, 2, gl.FLOAT, false, 0, 0)
-
-    gl.enable(gl.BLEND)
-    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
-    gl.clearColor(0, 0, 0, 0)
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW)
+    const aPos = gl.getAttribLocation(program, 'aPos')
+    gl.enableVertexAttribArray(aPos)
+    gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0)
 
     const loc = (name: string) => gl.getUniformLocation(program, name)
-    gl.uniform1f(loc('uMaxHeight'), MAX_HEIGHT)
-    gl.uniform2f(loc('uFade'), FIELD.fadeStart, FIELD.fadeEnd)
+    gl.uniform1f(loc('uScale'), FIELD.renderScale)
     return {
-      viewProj: loc('uViewProj'),
+      size: loc('uSize'),
       time: loc('uTime'),
-      pointScale: loc('uPointScale'),
       color: loc('uColor'),
     }
   }
 
   function resize() {
-    const size = bufferSize(canvas)
-    dpr = size.dpr
+    const size = bufferSize(canvas, FIELD.renderScale)
     if (canvas.width !== size.width || canvas.height !== size.height) {
       canvas.width = size.width
       canvas.height = size.height
     }
     if (lost) return
-    const aspect = size.width / size.height
-    const grid = createGrid(canvas.clientWidth, canvas.clientHeight)
-    count = grid.length / 2
-    gl.bufferData(gl.ARRAY_BUFFER, grid, gl.STATIC_DRAW)
     gl.viewport(0, 0, size.width, size.height)
-    gl.uniformMatrix4fv(uniforms.viewProj, false, fieldViewProj(aspect))
-    gl.uniform1f(uniforms.pointScale, FIELD.pointSize * FIELD.distance * dpr)
+    gl.uniform2f(uniforms.size, size.width / FIELD.renderScale, size.height / FIELD.renderScale)
     if (!animated) draw()
   }
 
   function draw() {
     if (lost) return
-    gl.uniform1f(uniforms.time, waveTime)
+    gl.uniform1f(uniforms.time, lightTime)
     gl.uniform3f(uniforms.color, color[0], color[1], color[2])
-    gl.clear(gl.COLOR_BUFFER_BIT)
-    gl.drawArrays(gl.POINTS, 0, count)
+    gl.drawArrays(gl.TRIANGLES, 0, 3)
     if (!ready) {
       ready = true
       options.onReady?.()
@@ -200,7 +164,7 @@ function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, option
     if (!gate(now)) return
     const step = lastNow ? Math.min(now - lastNow, MAX_STEP_MS) : 0
     lastNow = now
-    waveTime += (step / 1000) * FIELD.speed
+    lightTime += (step / 1000) * FIELD.speed
     if (fadeStart) {
       const t = (now - fadeStart) / COLOR_FADE_MS
       color = mixRgb(fadeFrom, fadeTo, t)
@@ -252,7 +216,7 @@ function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, option
         // Finish a color blend at once: there is no loop to run it
         if (fadeStart) color = fadeTo
         fadeStart = 0
-        waveTime = FIELD.staticTime
+        lightTime = FIELD.staticTime
         draw()
       }
       sync()
@@ -282,36 +246,31 @@ function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, option
   }
 }
 
-// No WebGL: draw the same field once on the CPU and keep it static
+// No WebGL: compute the same picture once on the CPU at a coarse resolution and keep it static
 function startCanvas2d(canvas: HTMLCanvasElement, options: FieldOptions): FieldController {
   const ctx = canvas.getContext('2d')
   let color = options.color
 
   function draw() {
     if (!ctx) return
-    const { width, height, dpr } = bufferSize(canvas)
+    const { width, height } = bufferSize(canvas, FIELD.fallbackScale)
     canvas.width = width
     canvas.height = height
-    const m = fieldViewProj(width / height)
-    const grid = createGrid(canvas.clientWidth, canvas.clientHeight)
-    ctx.clearRect(0, 0, width, height)
-    ctx.fillStyle = `rgb(${color.map(c => Math.round(c * 255)).join(' ')})`
-    for (let i = 0; i < grid.length; i += 2) {
-      const x = grid[i]!
-      const y = grid[i + 1]!
-      const h = fieldHeight(x, y, FIELD.staticTime)
-      const [cx, cy, , w] = toClip(m, x, y, h)
-      if (w <= 0) continue
-      const sx = (cx / w * 0.5 + 0.5) * width
-      const sy = (0.5 - cy / w * 0.5) * height
-      if (sx < 0 || sx > width || sy < 0 || sy > height) continue
-      const { size, alpha } = dotStyle(w, h)
-      if (alpha < 0.01) continue
-      const px = size * dpr
-      ctx.globalAlpha = alpha
-      ctx.fillRect(sx - px / 2, sy - px / 2, px, px)
+    const w = width / FIELD.fallbackScale
+    const h = height / FIELD.fallbackScale
+    const image = ctx.createImageData(width, height)
+    const [r, g, b] = color.map(c => Math.round(c * 255))
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const a = flutedAt((x + 0.5) / FIELD.fallbackScale, (y + 0.5) / FIELD.fallbackScale, w, h, FIELD.staticTime)
+        const i = (y * width + x) * 4
+        image.data[i] = r!
+        image.data[i + 1] = g!
+        image.data[i + 2] = b!
+        image.data[i + 3] = Math.round(a * 255)
+      }
     }
-    ctx.globalAlpha = 1
+    ctx.putImageData(image, 0, 0)
   }
 
   draw()
