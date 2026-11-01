@@ -63,6 +63,7 @@ const duration = computed(() => formatDuration(monthsBetween(props.job.start, pr
             v-for="product in job.products"
             :key="product.id"
             class="product"
+            data-glass
           >
             <a
               v-if="product.url"
@@ -183,7 +184,7 @@ const duration = computed(() => formatDuration(monthsBetween(props.job.start, pr
 }
 
 .product {
-  @apply flex flex-col gap-0.5 rounded-lg bg-muted/60 px-3 py-2;
+  @apply flex flex-col gap-0.5 rounded-lg glass px-3 py-2;
 }
 
 .product-name {

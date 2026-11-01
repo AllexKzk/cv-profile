@@ -138,12 +138,6 @@
   --glass-shade: oklch(1 0 0 / 6%);
 }
 
-/* Blocks over the live background: a semi-opaque theme fill that blurs the field under it.
-   Every blur layer is redrawn on each frame of the field, so phones get a denser fill without blur. */
-@utility surface {
-  @apply bg-card/90 sm:bg-card/70 sm:backdrop-blur-md;
-}
-
 /* Liquid glass blocks. Mark the element with data-glass: the live background then frosts the
    picture behind it and bends it at its edges, so the block itself only needs a thin fill, an
    edge line and a lit rim. Without WebGL the background cannot do that and the browser blurs */

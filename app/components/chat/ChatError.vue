@@ -29,6 +29,8 @@ const { downloadCv } = useLocalScenarios()
         v-if="retryable"
         variant="outline"
         size="sm"
+        class="action"
+        data-glass
         @click="emit('retry')"
       >
         <RotateCw />
@@ -38,6 +40,8 @@ const { downloadCv } = useLocalScenarios()
         <Button
           variant="outline"
           size="sm"
+          class="action"
+          data-glass
           @click="downloadCv()"
         >
           {{ $t('chat.actions.downloadCv') }}
@@ -45,6 +49,8 @@ const { downloadCv } = useLocalScenarios()
         <Button
           variant="outline"
           size="sm"
+          class="action"
+          data-glass
           as="a"
           :href="cv.contacts.telegram"
           target="_blank"
@@ -74,5 +80,10 @@ const { downloadCv } = useLocalScenarios()
 
 .actions {
   @apply flex flex-wrap gap-2;
+}
+
+/* Liquid glass buttons; the selector outweighs the outline variant's own fill */
+.actions .action {
+  @apply glass hover:bg-accent/40;
 }
 </style>

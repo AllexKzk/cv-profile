@@ -122,18 +122,33 @@ function updateColumn() {
 // Glass blocks: their rects feed the shader. Read synchronously on scroll and resize, so the
 // frosted area and the lens edges move in the same frame as the blocks; DOM changes are
 // batched to a frame
+// Same as FIELD.glass.max (the renderer chunk is loaded lazily, so it is not imported here)
+const GLASS_MAX = 16
+
 function updateGlass() {
   if (!field) return
   const height = window.innerHeight
-  const rects = []
+  const visible: Array<{ element: Element, box: DOMRect }> = []
   for (const element of document.querySelectorAll('[data-glass]')) {
     const box = element.getBoundingClientRect()
     if (box.width > 0 && box.height > 0 && box.bottom > -40 && box.top < height + 40) {
-      const r = Number.parseFloat(getComputedStyle(element).borderTopLeftRadius) || 0
-      rects.push({ x: box.left, y: box.top, w: box.width, h: box.height, r })
+      visible.push({ element, box })
     }
   }
-  field.setGlass(rects)
+  const area = (b: DOMRect) => b.width * b.height
+  // Over the shader's limit the big blocks (cards) win over small ones (buttons); then the
+  // small ones go first, so a button inside a card shows its own glass
+  const chosen = visible
+    .sort((a, b) => area(b.box) - area(a.box))
+    .slice(0, GLASS_MAX)
+    .sort((a, b) => area(a.box) - area(b.box))
+  field.setGlass(chosen.map(({ element, box }) => ({
+    x: box.left,
+    y: box.top,
+    w: box.width,
+    h: box.height,
+    r: Number.parseFloat(getComputedStyle(element).borderTopLeftRadius) || 0,
+  })))
 }
 
 let glassFrame = 0

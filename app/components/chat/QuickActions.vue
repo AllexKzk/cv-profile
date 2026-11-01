@@ -15,7 +15,7 @@ const { actions, run } = useQuickActions()
       :key="action.id"
       variant="outline"
       class="action"
-      :data-glass="compact ? undefined : true"
+      data-glass
       :size="compact ? 'sm' : 'default'"
       :class="compact ? 'shrink-0 rounded-full' : 'h-auto justify-start py-3'"
       @click="run(action.id)"
@@ -33,10 +33,15 @@ const { actions, run } = useQuickActions()
   @apply grid w-full gap-2 sm:grid-cols-2;
 }
 
-/* The big cards under the greeting are liquid glass blocks (data-glass in the template).
-   Chips above the input keep the outline variant */
-.actions:not(.compact) .action {
+/* Cards under the greeting and chips above the input are liquid glass (data-glass in the
+   template); the selector outweighs the outline variant's own fill */
+.actions .action {
   @apply glass hover:bg-accent/40;
+}
+
+/* Chips float above the scrolling messages: blur the page text behind them */
+.actions.compact .action {
+  @apply backdrop-blur-xl;
 }
 
 /* One row; scrolls sideways on narrow screens */

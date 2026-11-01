@@ -26,7 +26,8 @@ export const FIELD = {
   // out to a soft glow (`frost` is the average rib shading). In a `bevelPx` band along the edge
   // the glass works as a lens: it shows the picture from up to `pullPx` beyond its edge, squeezed
   // and sharp. `magnify` slightly enlarges what is behind the middle of the block
-  glass: { max: 6, bevelPx: 22, pullPx: 22, magnify: 0.03, frost: 0.47 },
+  // Up to `max` blocks at once (uniform budget: 2 vectors per block, fine even on old phones)
+  glass: { max: 16, bevelPx: 22, pullPx: 22, magnify: 0.03, frost: 0.47 },
   // Desktop: outside the chat column the field gets its own opacity, fading in over this many px
   sideFadePx: 120,
 } as const
@@ -51,7 +52,8 @@ export function roundedBoxSdf(px: number, py: number, rect: GlassRect): number {
 /**
  * What a glass block does to screen point (x, y): where the picture there comes from (sx, sy),
  * how sharp it stays (1 outside and at the very edge, 0 frosted) and whether the point is
- * inside a block. Blocks do not overlap, so the first one that contains the point wins.
+ * inside a block. The first block that contains the point wins: pass nested blocks (a button
+ * inside a card) before their containers.
  * Same math as `glass()` in the shader.
  */
 export function glassAt(x: number, y: number, rects: readonly GlassRect[]): { sx: number, sy: number, sharp: number, inside: boolean } {
