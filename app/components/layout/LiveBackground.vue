@@ -7,12 +7,14 @@ import {
   usePreferredReducedMotion,
   useResizeObserver,
 } from '@vueuse/core'
-import type { FieldController } from '~/lib/live-field/renderer'
+import type { FieldController, FieldOpacity } from '~/lib/live-field/renderer'
 
 // Decorative light behind fluted glass, full screen behind the page. The server renders an empty
 // canvas; the renderer is a separate chunk loaded when the browser is idle after hydration.
 // Desktop: the light drifts on its own. Phones: it stands still and follows the tilt.
-// Presses on buttons and fields send a ring across the glass on both.
+// Presses on buttons and fields send a ring across the glass on both. Blocks marked
+// `data-glass` are liquid glass: the shader frosts the picture behind them and bends it at
+// their edges. Desktop sides beyond the chat column get their own opacity.
 const canvas = useTemplateRef('canvas')
 const ready = ref(false)
 const reducedMotion = usePreferredReducedMotion()
@@ -20,23 +22,28 @@ const visibility = useDocumentVisibility()
 const touch = useMediaQuery('(pointer: coarse)')
 
 let field: FieldController | undefined
-let readColor: (() => [number, number, number]) | undefined
+let readTheme: (() => [[number, number, number], FieldOpacity]) | undefined
 let disposed = false
 
 const animated = computed(() => reducedMotion.value !== 'reduce')
 
 async function init() {
-  const { startField, readFieldColor } = await import('~/lib/live-field/renderer')
+  const { startField, readFieldColor, readFieldOpacity } = await import('~/lib/live-field/renderer')
   if (disposed || !canvas.value) return
-  readColor = readFieldColor
+  readTheme = () => [readFieldColor(), readFieldOpacity()]
   try {
     field = startField(canvas.value, {
       color: readFieldColor(),
+      opacity: readFieldOpacity(),
       animated: animated.value,
       onReady: () => (ready.value = true),
     })
+    // Without WebGL the glass blocks fall back to a CSS blur (see the glass utility)
+    document.documentElement.dataset.field = field.mode
     field.setVisible(visibility.value === 'visible')
     field.setAutonomous(!touch.value)
+    updateColumn()
+    updateGlass()
   }
   catch (error) {
     // A broken background must never break the page
@@ -97,13 +104,58 @@ useEventListener(() => (import.meta.client ? document : null), 'keydown', (event
   field?.ripple(box.left + box.width / 2, box.top + box.height / 2)
 }, { capture: true, passive: true })
 
-// color-mode toggles the theme class on <html>: re-read the token after it lands
+// color-mode toggles the theme class on <html>: re-read the tokens after it lands
 useMutationObserver(
   () => (import.meta.client ? document.documentElement : null),
   () => {
-    if (field && readColor) field.setColor(readColor())
+    if (field && readTheme) field.setTheme(...readTheme())
   },
   { attributes: true, attributeFilter: ['class'] },
+)
+
+// The chat column (the layout's <main>): beyond it the desktop sides get their own opacity
+function updateColumn() {
+  const box = document.querySelector('main')?.getBoundingClientRect()
+  if (box) field?.setColumn(box.left, box.right)
+}
+
+// Glass blocks: their rects feed the shader. Read synchronously on scroll and resize, so the
+// frosted area and the lens edges move in the same frame as the blocks; DOM changes are
+// batched to a frame
+function updateGlass() {
+  if (!field) return
+  const height = window.innerHeight
+  const rects = []
+  for (const element of document.querySelectorAll('[data-glass]')) {
+    const box = element.getBoundingClientRect()
+    if (box.width > 0 && box.height > 0 && box.bottom > -40 && box.top < height + 40) {
+      const r = Number.parseFloat(getComputedStyle(element).borderTopLeftRadius) || 0
+      rects.push({ x: box.left, y: box.top, w: box.width, h: box.height, r })
+    }
+  }
+  field.setGlass(rects)
+}
+
+let glassFrame = 0
+function scheduleGlass() {
+  if (glassFrame) return
+  glassFrame = requestAnimationFrame(() => {
+    glassFrame = 0
+    updateGlass()
+  })
+}
+
+useEventListener(() => (import.meta.client ? window : null), 'scroll', updateGlass, { passive: true })
+useEventListener(() => (import.meta.client ? window : null), 'resize', () => {
+  updateColumn()
+  updateGlass()
+}, { passive: true })
+// Messages slide in with CSS animations: re-read the rects when they settle
+useEventListener(() => (import.meta.client ? document : null), 'animationend', scheduleGlass, { passive: true })
+useMutationObserver(
+  () => (import.meta.client ? document.body : null),
+  scheduleGlass,
+  { childList: true, subtree: true },
 )
 
 let resizeTimer: ReturnType<typeof setTimeout> | undefined
@@ -131,8 +183,9 @@ useResizeObserver(canvas, () => {
   @apply transition-opacity duration-700;
 }
 
-/* Low opacity keeps the text readable; the value is a theme token */
+/* The shader applies the opacity tokens itself: low in the chat column for readability,
+   higher on the desktop sides and inside glass blocks */
 .field.ready {
-  opacity: var(--field-opacity);
+  @apply opacity-100;
 }
 </style>

@@ -16,7 +16,7 @@ const initials = computed(() => props.person.name.split(/\s+/).map(word => word[
 </script>
 
 <template>
-  <CvCard>
+  <CvCard glass>
     <div class="hero">
       <Avatar class="size-14 shrink-0 text-lg">
         <AvatarImage
