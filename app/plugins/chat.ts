@@ -14,9 +14,14 @@ export default defineNuxtPlugin((nuxtApp) => {
   const chat: UseChatHelpers<CvUIMessage> = useChat<CvUIMessage>({
     transport: new DefaultChatTransport<CvUIMessage>({
       api: '/api/chat',
-      // Only the tail the model sees: the server trims it anyway, this just sends less
+      // Only the tail the model sees: the server trims it anyway, this just sends less.
+      // A message with an attached vacancy is answered by the 'match' scenario.
       prepareSendMessagesRequest: ({ messages }) => ({
-        body: { messages: trimHistory(messages), scenario: 'free', locale: nuxtApp.$i18n.locale.value },
+        body: {
+          messages: trimHistory(messages),
+          scenario: messages.at(-1)?.parts.some(part => part.type === 'data-vacancy') ? 'match' : 'free',
+          locale: nuxtApp.$i18n.locale.value,
+        },
       }),
     }),
   })

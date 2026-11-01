@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { useElementSize } from '@vueuse/core'
+import { FileUp } from '@lucide/vue'
+import { useDropZone, useElementSize } from '@vueuse/core'
+import type { CvUIMessage } from '#shared/types/chat'
 
 const { messages, status, error, sendMessage, stop, regenerate } = useCvChat()
-const picker = useVacancyPicker()
+const { attachment, attachFile, attachText, clear: clearAttachment } = useVacancyUpload()
+const picker = useVacancyPicker(attachFile)
 
 const isEmpty = computed(() => messages.value.length === 0)
 const busy = computed(() => status.value === 'submitted' || status.value === 'streaming')
@@ -16,13 +19,32 @@ const animateGreeting = computed(() => !greetingTyped.value && isEmpty.value)
 const composer = useTemplateRef('composer')
 const { height: composerHeight } = useElementSize(composer, undefined, { box: 'border-box' })
 
+// A file dropped anywhere on the chat becomes the pending attachment
+const chat = useTemplateRef<HTMLElement>('chat')
+const { isOverDropZone } = useDropZone(chat, {
+  multiple: false,
+  onDrop: (files) => {
+    const file = files?.[0]
+    if (file) attachFile(file)
+  },
+})
+
 function send(text: string) {
-  sendMessage({ text })
+  const vacancy = attachment.value?.status === 'ready' ? attachment.value.data : undefined
+  if (!vacancy) return sendMessage({ text })
+
+  const parts: CvUIMessage['parts'] = [{ type: 'data-vacancy', data: vacancy }]
+  if (text) parts.push({ type: 'text', text })
+  clearAttachment()
+  sendMessage({ parts })
 }
 </script>
 
 <template>
-  <div class="chat">
+  <div
+    ref="chat"
+    class="chat"
+  >
     <ChatMessageList
       :messages="messages"
       :status="status"
@@ -56,11 +78,22 @@ function send(text: string) {
       />
       <ChatInput
         :busy="busy"
+        :attachment="attachment"
         @send="send"
         @stop="stop()"
         @attach="picker.open()"
+        @remove-attachment="clearAttachment()"
+        @paste-long="attachText"
       />
     </div>
+    <div
+      v-if="isOverDropZone"
+      class="drop"
+    >
+      <FileUp class="drop-icon" />
+      {{ $t('vacancy.drop') }}
+    </div>
+    <ChatVacancyDialog />
   </div>
 </template>
 
@@ -68,7 +101,16 @@ function send(text: string) {
 @reference "~/assets/css/main.css";
 
 .chat {
-  @apply flex flex-1 flex-col;
+  @apply relative flex flex-1 flex-col;
+}
+
+/* Covers the chat while a file is dragged over it; pointer events stay with the drop zone */
+.drop {
+  @apply pointer-events-none fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-background/85 text-lg font-medium backdrop-blur-sm;
+}
+
+.drop-icon {
+  @apply size-10 text-muted-foreground;
 }
 
 .cards {

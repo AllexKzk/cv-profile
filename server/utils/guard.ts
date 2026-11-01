@@ -5,8 +5,9 @@ import { LOCALES } from '#shared/cv'
 import { CHAT_SCENARIOS, cvDataSchemas, cvToolSchemas } from '#shared/types/chat'
 import type { CvUIMessage } from '#shared/types/chat'
 
-// Raw body limit. 20 messages of history with answers of ≤ 800 tokens fit with a margin.
-export const MAX_BODY_BYTES = 128 * 1024
+// Raw body limit. 20 messages of history with answers of ≤ 800 tokens and one vacancy of
+// 20 000 characters (≈ 40 KB of Cyrillic in UTF-8) fit with a margin.
+export const MAX_BODY_BYTES = 192 * 1024
 
 // Strict: the client cannot pass a system prompt, a model or generation settings
 const ChatRequestSchema = z.strictObject({
@@ -16,6 +17,8 @@ const ChatRequestSchema = z.strictObject({
 })
 
 export type ChatRequest = Omit<z.infer<typeof ChatRequestSchema>, 'messages'> & { messages: CvUIMessage[] }
+
+const vacancyCount = (message: CvUIMessage) => message.parts.filter(part => part.type === 'data-vacancy').length
 
 const textLength = (message: CvUIMessage) =>
   message.parts.reduce((sum, part) => sum + (part.type === 'text' ? part.text.length : 0), 0)
@@ -47,6 +50,10 @@ export async function parseChatRequest(raw: string | undefined): Promise<ChatReq
   // Only users write free text, and the UI never lets them send more than the limit
   if (messages.data.some(m => m.role === 'user' && textLength(m) > CHAT_LIMITS.messageChars)) return null
   if (messages.data.some(m => m.role === 'system')) return null
+  // One vacancy per message, and only users attach them
+  if (messages.data.some(m => vacancyCount(m) > (m.role === 'user' ? 1 : 0))) return null
+  // 'match' is the answer to an attached vacancy
+  if (body.data.scenario === 'match' && vacancyCount(last) !== 1) return null
 
   return { ...body.data, messages: messages.data }
 }

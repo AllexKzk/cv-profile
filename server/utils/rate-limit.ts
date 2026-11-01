@@ -73,21 +73,35 @@ export interface RedisCredentials {
 
 let warned = false
 
-// Upstash limiter, or a no-op one when Redis is not configured (local development)
-export function createUpstashLimiter({ url, token }: RedisCredentials, config: LimitsConfig): Limiter {
+function upstashRedis({ url, token }: RedisCredentials): Redis | null {
   if (!url || !token) {
     if (import.meta.dev && !warned) {
       warned = true
       console.warn('[chat] Upstash Redis is not configured: rate limits are disabled')
     }
-    return noopLimiter
+    return null
   }
+  return new Redis({ url, token })
+}
 
-  const redis = new Redis({ url, token })
+// Upstash limiter, or a no-op one when Redis is not configured (local development)
+export function createUpstashLimiter(credentials: RedisCredentials, config: LimitsConfig): Limiter {
+  const redis = upstashRedis(credentials)
+  if (!redis) return noopLimiter
+
   const window = new Ratelimit({
     redis,
     limiter: Ratelimit.slidingWindow(config.ipRequests, '10 m'),
     prefix: 'cv:rl',
   })
   return createLimiter(redis, window, config)
+}
+
+export const openWindow: RequestWindow = { limit: async () => ({ success: true }) }
+
+// A plain per-IP window (`requests` per 10 minutes) for routes without LLM spend
+export function createUpstashWindow(credentials: RedisCredentials, requests: number, prefix: string): RequestWindow {
+  const redis = upstashRedis(credentials)
+  if (!redis) return openWindow
+  return new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(requests, '10 m'), prefix })
 }

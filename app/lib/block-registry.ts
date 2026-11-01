@@ -4,6 +4,8 @@ import CvDownloadBlock from '~/components/blocks/CvDownloadBlock.vue'
 import CvSectionBlock from '~/components/blocks/CvSectionBlock.vue'
 import MarkdownBlock from '~/components/blocks/MarkdownBlock.vue'
 import TextBlock from '~/components/blocks/TextBlock.vue'
+import VacancyAttachmentBlock from '~/components/blocks/VacancyAttachmentBlock.vue'
+import VacancyMatchBlock from '~/components/blocks/VacancyMatchBlock.vue'
 
 type PartType = CvMessagePart['type']
 
@@ -12,7 +14,10 @@ export const blockRegistry: Partial<Record<PartType, Component>> = {
   'text': TextBlock,
   'data-cv': CvSectionBlock,
   'data-download': CvDownloadBlock,
+  'data-vacancy': VacancyAttachmentBlock,
   'tool-showCvSection': CvSectionBlock,
+  // Interim result of F5; F6 puts MatchReport here
+  'tool-analyzeVacancy': VacancyMatchBlock,
 }
 
 // Service parts of AI SDK that have nothing to show
