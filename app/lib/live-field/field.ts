@@ -17,7 +17,42 @@ export const FIELD = {
   speed: 4.5,
   // Light time of the static frame (reduced motion, no WebGL)
   staticTime: 40,
+  // Phones: the light stands still and follows the tilt. `offset` is how far it shifts at full
+  // tilt (viewport fractions), `rangeDeg` the tilt for that, `time` how much it also morphs
+  tilt: { offset: 0.12, rangeDeg: 30, time: 6 },
+  // A press sends a ring across the glass: it pushes the light outwards and brightens the ribs
+  ripple: { max: 4, speedPx: 650, widthPx: 60, lifeS: 1.4, pushPx: 45, glow: 0.85 },
 } as const
+
+/** A ring from a press: center in CSS px, age in seconds. */
+export interface Ripple {
+  x: number
+  y: number
+  age: number
+}
+
+/**
+ * Effect of the rings at screen point (x, y): how far they push the light (dx, dy, CSS px) and
+ * how much they brighten it. Same math as `ripple()` in the shader.
+ */
+export function rippleAt(x: number, y: number, ripples: readonly Ripple[]): [number, number, number] {
+  const { speedPx, widthPx, lifeS, pushPx } = FIELD.ripple
+  let dx = 0
+  let dy = 0
+  let glow = 0
+  for (const r of ripples) {
+    const vx = x - r.x
+    const vy = y - r.y
+    const d = Math.hypot(vx, vy)
+    const g = (d - r.age * speedPx) / widthPx
+    const ring = Math.exp(-g * g) * (1 - smoothstep(0, lifeS, r.age))
+    const k = (ring * pushPx) / Math.max(d, 1)
+    dx += vx * k
+    dy += vy * k
+    glow += ring
+  }
+  return [dx, dy, glow]
+}
 
 interface Blob {
   // Center as viewport fractions and how far it drifts from there (Lissajous path)
@@ -112,17 +147,29 @@ export function ribShade(u: number, glint: number, rim: number): number {
   return (body + left + right) * smoothstep(0, 0.03, u)
 }
 
-/** Final intensity (0–1) at screen point (x, y) of a w × h viewport, CSS px. */
-export function flutedAt(x: number, y: number, w: number, h: number, t: number): number {
+/**
+ * Final intensity (0–1) at screen point (x, y) of a w × h viewport, CSS px. `offset` shifts the
+ * light (phone tilt, viewport fractions), `ripples` are the rings from presses.
+ */
+export function flutedAt(
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  t: number,
+  offset: readonly [number, number] = [0, 0],
+  ripples: readonly Ripple[] = [],
+): number {
   const i = Math.floor(x / FIELD.ribPx)
   const u = x / FIELD.ribPx - i
   const rib = ribTraits(i)
   // Each rib shows a wider slice of the light, squeezed into the rib width
-  const sx = x + (u - 0.5) * FIELD.ribPx * rib.refraction
-  const sy = y + rib.shiftPx
+  const [pushX, pushY, glow] = rippleAt(x, y, ripples)
+  const sx = x + (u - 0.5) * FIELD.ribPx * rib.refraction + pushX
+  const sy = y + rib.shiftPx + pushY
   // Glints slowly brighten and fade, each rib at its own pace
   const shimmer = 0.65 + 0.35 * Math.sin(t * 0.15 + rib.phase)
-  const light = lightAt(sx / w, sy / h, w / h, t) * rib.clarity
+  const light = Math.min(lightAt(sx / w + offset[0], sy / h + offset[1], w / h, t) + glow * FIELD.ripple.glow, 1) * rib.clarity
   return Math.min(light * ribShade(u, rib.glint * shimmer, rib.rim * shimmer), 1)
 }
 
@@ -160,7 +207,23 @@ float ribShade(float u, float glint, float rim) {
   return (body + glint * exp(-gl * gl) + rim * exp(-gr * gr)) * smoothstep(0.0, 0.03, u);
 }
 
-float flutedAt(vec2 p, vec2 size, float t) {
+// Rings from presses: x, y (CSS px), age (s), active flag. Declared by the renderer
+vec3 ripple(vec2 p) {
+  vec3 r = vec3(0.0);
+  for (int k = 0; k < ${FIELD.ripple.max}; k++) {
+    vec4 rp = uRipples[k];
+    if (rp.w > 0.0) {
+      vec2 v = p - rp.xy;
+      float d = length(v);
+      float g = (d - rp.z * ${f(FIELD.ripple.speedPx)}) / ${f(FIELD.ripple.widthPx)};
+      float ring = exp(-g * g) * (1.0 - smoothstep(0.0, ${f(FIELD.ripple.lifeS)}, rp.z));
+      r += vec3(v * ring * ${f(FIELD.ripple.pushPx)} / max(d, 1.0), ring);
+    }
+  }
+  return r;
+}
+
+float flutedAt(vec2 p, vec2 size, float t, vec2 offset) {
   float x = p.x / ${f(FIELD.ribPx)};
   float i = floor(x);
   float u = x - i;
@@ -169,10 +232,11 @@ float flutedAt(vec2 p, vec2 size, float t) {
   float c = hash(i + 31.0);
   float d = hash(i + 47.0);
   float refraction = ${f(FIELD.refraction)} * (0.4 + 1.2 * a);
-  float sx = p.x + (u - 0.5) * ${f(FIELD.ribPx)} * refraction;
-  float sy = p.y + (b - 0.5) * 60.0;
+  vec3 rp = ripple(p);
+  float sx = p.x + (u - 0.5) * ${f(FIELD.ribPx)} * refraction + rp.x;
+  float sy = p.y + (b - 0.5) * 60.0 + rp.y;
   float shimmer = 0.65 + 0.35 * sin(t * 0.15 + a * 6.2832);
-  float light = lightAt(vec2(sx, sy) / size, size.x / size.y, t) * (0.35 + 0.65 * b);
+  float light = min(lightAt(vec2(sx, sy) / size + offset, size.x / size.y, t) + rp.z * ${f(FIELD.ripple.glow)}, 1.0) * (0.35 + 0.65 * b);
   float glint = (0.1 + 0.9 * c) * shimmer;
   float rim = 0.9 * smoothstep(0.65, 1.0, d) * shimmer;
   return min(light * ribShade(u, glint, rim), 1.0);

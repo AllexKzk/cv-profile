@@ -5,8 +5,14 @@ import { FIELD, createFrameGate, fieldGlsl, flutedAt, mixRgb } from './field'
 import type { Rgb } from './field'
 
 export interface FieldController {
-  /** Animate (true) or show one static frame (false, reduced motion). */
+  /** Allow motion (false: one static frame, no tilt or ripples; reduced motion). */
   setAnimated: (animated: boolean) => void
+  /** Let the light drift on its own (desktop) or only follow tilt and presses (phones). */
+  setAutonomous: (autonomous: boolean) => void
+  /** Phone tilt, each axis in -1…1; the light eases towards it. */
+  setTilt: (x: number, y: number) => void
+  /** Send a ring across the glass from a point in CSS px. */
+  ripple: (x: number, y: number) => void
   /** Pause the loop while the tab is hidden. */
   setVisible: (visible: boolean) => void
   /** New light color; animated fields blend into it, static ones redraw at once. */
@@ -72,13 +78,15 @@ uniform vec2 uSize;
 uniform float uScale;
 uniform float uTime;
 uniform vec3 uColor;
+uniform vec2 uOffset;
+uniform vec4 uRipples[${FIELD.ripple.max}];
 
 ${fieldGlsl()}
 
 void main() {
   // CSS px with y down, like the TS copy in field.ts
   vec2 p = vec2(gl_FragCoord.x, uSize.y * uScale - gl_FragCoord.y) / uScale;
-  float a = flutedAt(p, uSize, uTime);
+  float a = flutedAt(p, uSize, uTime, uOffset);
   // The canvas is premultiplied: the page background shows through
   gl_FragColor = vec4(uColor * a, a);
 }
@@ -88,12 +96,16 @@ function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, option
   const gate = createFrameGate(FPS)
 
   let animated = options.animated
+  let autonomous = true
   let visible = true
   let color: Rgb = options.color
   let fadeFrom: Rgb = color
   let fadeTo: Rgb = color
   let fadeStart = 0
+  // Light time of the drift; the tilt adds its own morph on top of it
   let lightTime = FIELD.staticTime
+  const tilt = { x: 0, y: 0, targetX: 0, targetY: 0 }
+  let ripples: Array<{ x: number, y: number, start: number }> = []
   let lastNow = 0
   let frame = 0
   let lost = false
@@ -133,6 +145,8 @@ function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, option
       size: loc('uSize'),
       time: loc('uTime'),
       color: loc('uColor'),
+      offset: loc('uOffset'),
+      ripples: loc('uRipples'),
     }
   }
 
@@ -145,12 +159,21 @@ function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, option
     if (lost) return
     gl.viewport(0, 0, size.width, size.height)
     gl.uniform2f(uniforms.size, size.width / FIELD.renderScale, size.height / FIELD.renderScale)
-    if (!animated) draw()
+    draw(performance.now())
   }
 
-  function draw() {
+  function draw(now: number) {
     if (lost) return
-    gl.uniform1f(uniforms.time, lightTime)
+    const live = animated ? ripples : []
+    const packed = new Float32Array(FIELD.ripple.max * 4)
+    live.slice(-FIELD.ripple.max).forEach((r, k) => {
+      packed.set([r.x, r.y, (now - r.start) / 1000, 1], k * 4)
+    })
+    const tiltX = animated ? tilt.x : 0
+    const tiltY = animated ? tilt.y : 0
+    gl.uniform1f(uniforms.time, lightTime + (tiltX + tiltY) * FIELD.tilt.time)
+    gl.uniform2f(uniforms.offset, tiltX * FIELD.tilt.offset, tiltY * FIELD.tilt.offset)
+    gl.uniform4fv(uniforms.ripples, packed)
     gl.uniform3f(uniforms.color, color[0], color[1], color[2])
     gl.drawArrays(gl.TRIANGLES, 0, 3)
     if (!ready) {
@@ -159,30 +182,50 @@ function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, option
     }
   }
 
+  // Something is still moving: the drift, the tilt easing, a ring or a color blend
+  function busy(): boolean {
+    if (fadeStart) return true
+    if (!animated) return false
+    return autonomous
+      || ripples.length > 0
+      || Math.abs(tilt.targetX - tilt.x) > 1e-3
+      || Math.abs(tilt.targetY - tilt.y) > 1e-3
+  }
+
   function tick(now: number) {
     frame = requestAnimationFrame(tick)
     if (!gate(now)) return
     const step = lastNow ? Math.min(now - lastNow, MAX_STEP_MS) : 0
     lastNow = now
-    lightTime += (step / 1000) * FIELD.speed
+    if (animated && autonomous) lightTime += (step / 1000) * FIELD.speed
+    // Ease towards the tilt so sensor noise does not jitter the light
+    const ease = Math.min(1, (step / 1000) * 5)
+    tilt.x += (tilt.targetX - tilt.x) * ease
+    tilt.y += (tilt.targetY - tilt.y) * ease
+    ripples = ripples.filter(r => now - r.start < FIELD.ripple.lifeS * 1000)
     if (fadeStart) {
       const t = (now - fadeStart) / COLOR_FADE_MS
       color = mixRgb(fadeFrom, fadeTo, t)
       if (t >= 1) fadeStart = 0
     }
-    draw()
+    draw(now)
+    if (!busy()) stop()
   }
 
-  // The loop runs only while animated, visible and with a live context
+  function stop() {
+    cancelAnimationFrame(frame)
+    frame = 0
+  }
+
+  // The loop runs only while something moves, the tab is visible and the context is alive
   function sync() {
-    const shouldRun = animated && visible && !lost
+    const shouldRun = visible && !lost && busy()
     if (shouldRun && !frame) {
       lastNow = 0
       frame = requestAnimationFrame(tick)
     }
     else if (!shouldRun && frame) {
-      cancelAnimationFrame(frame)
-      frame = 0
+      stop()
     }
   }
 
@@ -197,7 +240,6 @@ function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, option
     lost = false
     uniforms = setup()
     resize()
-    draw()
     sync()
   }
 
@@ -206,19 +248,33 @@ function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, option
 
   uniforms = setup()
   resize()
-  draw()
   sync()
 
   return {
     setAnimated(value) {
       animated = value
       if (!animated) {
-        // Finish a color blend at once: there is no loop to run it
+        // Finish a color blend at once and freeze the light on its static frame
         if (fadeStart) color = fadeTo
         fadeStart = 0
         lightTime = FIELD.staticTime
-        draw()
+        ripples = []
       }
+      draw(performance.now())
+      sync()
+    },
+    setAutonomous(value) {
+      autonomous = value
+      sync()
+    },
+    setTilt(x, y) {
+      tilt.targetX = x
+      tilt.targetY = y
+      sync()
+    },
+    ripple(x, y) {
+      if (!animated) return
+      ripples.push({ x, y, start: performance.now() })
       sync()
     },
     setVisible(value) {
@@ -226,20 +282,22 @@ function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, option
       sync()
     },
     setColor(value) {
-      if (animated && visible) {
+      if (frame) {
         fadeFrom = color
         fadeTo = value
         fadeStart = performance.now()
       }
       else {
         color = value
-        draw()
+        draw(performance.now())
       }
     },
     resize,
     destroy() {
       animated = false
+      fadeStart = 0
       sync()
+      stop()
       canvas.removeEventListener('webglcontextlost', onLost)
       canvas.removeEventListener('webglcontextrestored', onRestored)
     },
@@ -279,6 +337,9 @@ function startCanvas2d(canvas: HTMLCanvasElement, options: FieldOptions): FieldC
 
   return {
     setAnimated() {},
+    setAutonomous() {},
+    setTilt() {},
+    ripple() {},
     setVisible() {},
     setColor(value) {
       color = value

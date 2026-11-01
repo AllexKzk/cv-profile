@@ -8,6 +8,7 @@ import {
   mixRgb,
   ribShade,
   ribTraits,
+  rippleAt,
 } from '../../app/lib/live-field/field'
 
 describe('lightAt', () => {
@@ -86,6 +87,11 @@ describe('flutedAt', () => {
     }
   })
 
+  it('moves the light with the tilt offset', () => {
+    const at = (offset: [number, number]) => flutedAt(640.5 + 5, 400, w, h, FIELD.staticTime, offset)
+    expect(at([0.1, 0])).not.toBeCloseTo(at([0, 0]), 3)
+  })
+
   it('stays within 0–1', () => {
     for (let x = 0; x < w; x += 37) {
       for (let y = 0; y < h; y += 41) {
@@ -106,8 +112,39 @@ describe('fieldGlsl', () => {
   })
 
   it('writes every number as a GLSL float literal', () => {
-    // A bare integer next to a float operation does not compile in GLSL ES 1.0
-    expect(fieldGlsl()).not.toMatch(/[^.\w]\d+[^.\d\w]/)
+    // A bare integer next to a float operation does not compile in GLSL ES 1.0; the ripple
+    // loop counter is the one int on purpose
+    const glsl = fieldGlsl().replace(/for \(int k = 0; k < \d+; k\+\+\)/, '')
+    expect(glsl).not.toMatch(/[^.\w]\d+[^.\d\w]/)
+  })
+})
+
+describe('rippleAt', () => {
+  const ring = (age: number) => [{ x: 0, y: 0, age }]
+
+  it('does nothing without rings', () => {
+    expect(rippleAt(100, 100, [])).toEqual([0, 0, 0])
+  })
+
+  it('glows on the expanding ring and not far inside or outside it', () => {
+    const age = 0.3
+    const radius = age * FIELD.ripple.speedPx
+    const [, , onRing] = rippleAt(radius, 0, ring(age))
+    expect(onRing).toBeGreaterThan(0.5)
+    expect(rippleAt(radius / 4, 0, ring(age))[2]).toBeLessThan(0.05)
+    expect(rippleAt(radius * 3, 0, ring(age))[2]).toBeLessThan(0.05)
+  })
+
+  it('pushes the light outwards from the press', () => {
+    const radius = 0.3 * FIELD.ripple.speedPx
+    const [dx, dy] = rippleAt(radius, 0, ring(0.3))
+    expect(dx).toBeGreaterThan(5)
+    expect(Math.abs(dy)).toBeLessThan(1e-9)
+  })
+
+  it('fades out by the end of its life', () => {
+    const age = FIELD.ripple.lifeS
+    expect(rippleAt(age * FIELD.ripple.speedPx, 0, ring(age))[2]).toBeLessThan(1e-6)
   })
 })
 
