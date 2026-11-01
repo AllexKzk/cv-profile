@@ -63,7 +63,7 @@ const duration = computed(() => formatDuration(monthsBetween(props.job.start, pr
             v-for="product in job.products"
             :key="product.id"
             class="product"
-            data-glass
+            data-glass="frost"
           >
             <a
               v-if="product.url"

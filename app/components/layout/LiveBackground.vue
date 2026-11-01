@@ -14,7 +14,7 @@ import type { FieldController, FieldOpacity } from '~/lib/live-field/renderer'
 // Desktop: the light drifts on its own. Phones: it stands still and follows the tilt.
 // Presses on buttons and fields send a ring across the glass on both. Blocks marked
 // `data-glass` are liquid glass: the shader frosts the picture behind them and bends it at
-// their edges. Desktop sides beyond the chat column get their own opacity.
+// their edges (`data-glass="frost"`: frosted only, no lens). Desktop sides beyond the chat column get their own opacity.
 const canvas = useTemplateRef('canvas')
 const ready = ref(false)
 const reducedMotion = usePreferredReducedMotion()
@@ -148,6 +148,8 @@ function updateGlass() {
     w: box.width,
     h: box.height,
     r: Number.parseFloat(getComputedStyle(element).borderTopLeftRadius) || 0,
+    // data-glass="frost": evenly frosted, no lens along the edge
+    lens: (element as HTMLElement).dataset.glass !== 'frost',
   })))
 }
 
