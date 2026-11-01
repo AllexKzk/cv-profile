@@ -19,7 +19,7 @@ defineProps<{ title?: string }>()
 @reference "~/assets/css/main.css";
 
 .card {
-  @apply rounded-xl border bg-card p-4 text-card-foreground sm:p-5;
+  @apply rounded-xl border surface p-4 text-card-foreground sm:p-5;
 }
 
 .title {

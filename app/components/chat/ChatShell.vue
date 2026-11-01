@@ -76,12 +76,16 @@ function send(text: string) {
 }
 
 .composer {
-  @apply sticky bottom-0 z-10 flex shrink-0 flex-col gap-2 bg-background pb-4;
+  @apply sticky bottom-0 z-10 flex shrink-0 flex-col gap-2 pb-4;
 }
 
-/* Messages fade out under the composer instead of being cut by a hard edge */
+/* A blurred bar across the whole viewport, like the TopBar. Its top edge fades out, so messages
+   blur gradually as they go under the composer instead of being cut by a hard edge. */
 .composer::before {
-  @apply pointer-events-none absolute inset-x-0 -top-6 h-6 bg-linear-to-t from-background to-transparent;
+  @apply pointer-events-none absolute -top-6 bottom-0 -z-10 surface-bar;
+  mask-image: linear-gradient(to bottom, transparent, black 1.5rem);
+  left: calc(50% - 50vw);
+  right: calc(50% - 50vw);
   content: '';
 }
 </style>

@@ -1,5 +1,6 @@
 <template>
   <TooltipProvider :delay-duration="300">
+    <LayoutLiveBackground />
     <div class="shell">
       <LayoutTopBar />
       <main class="content">
@@ -13,8 +14,9 @@
 @reference "~/assets/css/main.css";
 
 .shell {
-  /* The page itself scrolls; TopBar and the chat composer are sticky */
-  @apply flex min-h-dvh flex-col;
+  /* The page itself scrolls; TopBar and the chat composer are sticky.
+     clip, not hidden: the full-width composer backdrop must not cause a horizontal scroll */
+  @apply flex min-h-dvh flex-col overflow-x-clip;
 }
 
 .content {

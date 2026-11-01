@@ -19,7 +19,7 @@
 @reference "~/assets/css/main.css";
 
 .topbar {
-  @apply sticky top-0 z-10 shrink-0 bg-background/80 backdrop-blur;
+  @apply sticky top-0 z-10 shrink-0 surface-bar;
 }
 
 .inner {
