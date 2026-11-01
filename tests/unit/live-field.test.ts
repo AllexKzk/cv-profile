@@ -7,6 +7,7 @@ import {
   lightAt,
   mixRgb,
   ribShade,
+  ribTraits,
 } from '../../app/lib/live-field/field'
 
 describe('lightAt', () => {
@@ -35,12 +36,43 @@ describe('lightAt', () => {
 
 describe('ribShade', () => {
   it('has a dark seam at the rib edge', () => {
-    expect(ribShade(0)).toBe(0)
+    expect(ribShade(0, 1, 1)).toBe(0)
   })
 
   it('glints just after the seam and dims towards the right edge', () => {
-    expect(ribShade(0.06)).toBeGreaterThan(ribShade(0.3))
-    expect(ribShade(0.3)).toBeGreaterThan(ribShade(0.95))
+    expect(ribShade(0.06, 0.6, 0)).toBeGreaterThan(ribShade(0.3, 0.6, 0))
+    expect(ribShade(0.3, 0.6, 0)).toBeGreaterThan(ribShade(0.85, 0.6, 0))
+  })
+
+  it('adds a rim light before the right edge only when the rib has one', () => {
+    expect(ribShade(0.93, 0.6, 0.9)).toBeGreaterThan(ribShade(0.93, 0.6, 0) + 0.5)
+  })
+})
+
+describe('ribTraits', () => {
+  const ribs = Array.from({ length: 100 }, (_, i) => ribTraits(i))
+
+  it('is stable for the same rib', () => {
+    expect(ribTraits(42)).toEqual(ribTraits(42))
+  })
+
+  it('makes ribs different: clear and frosted, with and without a rim light', () => {
+    const clarity = ribs.map(r => r.clarity)
+    expect(Math.min(...clarity)).toBeLessThan(0.5)
+    expect(Math.max(...clarity)).toBeGreaterThan(0.85)
+    const withRim = ribs.filter(r => r.rim > 0.1).length
+    expect(withRim).toBeGreaterThan(10)
+    expect(withRim).toBeLessThan(60)
+  })
+
+  it('keeps every trait in its range', () => {
+    for (const r of ribs) {
+      expect(r.refraction).toBeGreaterThanOrEqual(FIELD.refraction * 0.4)
+      expect(r.refraction).toBeLessThanOrEqual(FIELD.refraction * 1.6)
+      expect(r.clarity).toBeGreaterThanOrEqual(0.35)
+      expect(r.clarity).toBeLessThanOrEqual(1)
+      expect(Math.abs(r.shiftPx)).toBeLessThanOrEqual(30)
+    }
   })
 })
 
@@ -68,7 +100,7 @@ describe('flutedAt', () => {
 describe('fieldGlsl', () => {
   it('defines the shader functions from the same constants', () => {
     const glsl = fieldGlsl()
-    for (const name of ['float lightAt(', 'float ribShade(', 'float flutedAt(']) expect(glsl).toContain(name)
+    for (const name of ['float lightAt(', 'float hash(', 'float ribShade(', 'float flutedAt(']) expect(glsl).toContain(name)
     expect(glsl.match(/l \+= /g)).toHaveLength(3)
     expect(glsl).toContain(`${FIELD.ribPx}.0`)
   })
