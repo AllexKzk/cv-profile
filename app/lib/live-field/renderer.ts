@@ -8,7 +8,6 @@ import {
   dotStyle,
   fieldHeight,
   fieldViewProj,
-  gridCols,
   heightGlsl,
   mixRgb,
   toClip,
@@ -80,14 +79,15 @@ varying float vAlpha;
 ${heightGlsl()}
 
 void main() {
-  float y = height(aGrid, uTime);
-  vec4 clip = uViewProj * vec4(aGrid.x, y, aGrid.y, 1.0);
+  // The wall is z = 0; waves push dots towards the camera
+  float h = height(aGrid, uTime);
+  vec4 clip = uViewProj * vec4(aGrid, h, 1.0);
   gl_Position = clip;
   // Same as dotStyle() in field.ts
   float size = uPointScale / clip.w;
   gl_PointSize = max(size, 1.0);
   float depthFade = 1.0 - smoothstep(uFade.x, uFade.y, clip.w);
-  float crest = 0.55 + 0.45 * clamp(y / uMaxHeight * 0.5 + 0.5, 0.0, 1.0);
+  float crest = 0.65 + 0.35 * clamp(h / uMaxHeight * 0.5 + 0.5, 0.0, 1.0);
   vAlpha = depthFade * crest * min(size, 1.0);
 }
 `
@@ -174,12 +174,12 @@ function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, option
     }
     if (lost) return
     const aspect = size.width / size.height
-    const grid = createGrid(aspect, gridCols(canvas.clientWidth))
+    const grid = createGrid(canvas.clientWidth, canvas.clientHeight)
     count = grid.length / 2
     gl.bufferData(gl.ARRAY_BUFFER, grid, gl.STATIC_DRAW)
     gl.viewport(0, 0, size.width, size.height)
     gl.uniformMatrix4fv(uniforms.viewProj, false, fieldViewProj(aspect))
-    gl.uniform1f(uniforms.pointScale, FIELD.pointSize * 3 * dpr)
+    gl.uniform1f(uniforms.pointScale, FIELD.pointSize * FIELD.distance * dpr)
     if (!animated) draw()
   }
 
@@ -293,19 +293,19 @@ function startCanvas2d(canvas: HTMLCanvasElement, options: FieldOptions): FieldC
     canvas.width = width
     canvas.height = height
     const m = fieldViewProj(width / height)
-    const grid = createGrid(width / height, gridCols(canvas.clientWidth))
+    const grid = createGrid(canvas.clientWidth, canvas.clientHeight)
     ctx.clearRect(0, 0, width, height)
     ctx.fillStyle = `rgb(${color.map(c => Math.round(c * 255)).join(' ')})`
     for (let i = 0; i < grid.length; i += 2) {
       const x = grid[i]!
-      const z = grid[i + 1]!
-      const y = fieldHeight(x, z, FIELD.staticTime)
-      const [cx, cy, , w] = toClip(m, x, y, z)
+      const y = grid[i + 1]!
+      const h = fieldHeight(x, y, FIELD.staticTime)
+      const [cx, cy, , w] = toClip(m, x, y, h)
       if (w <= 0) continue
       const sx = (cx / w * 0.5 + 0.5) * width
       const sy = (0.5 - cy / w * 0.5) * height
       if (sx < 0 || sx > width || sy < 0 || sy > height) continue
-      const { size, alpha } = dotStyle(w, y)
+      const { size, alpha } = dotStyle(w, h)
       if (alpha < 0.01) continue
       const px = size * dpr
       ctx.globalAlpha = alpha

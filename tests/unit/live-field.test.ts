@@ -7,7 +7,6 @@ import {
   dotStyle,
   fieldHeight,
   fieldViewProj,
-  gridCols,
   heightGlsl,
   mixRgb,
   toClip,
@@ -16,9 +15,9 @@ import {
 describe('fieldHeight', () => {
   it('stays within the sum of wave amplitudes', () => {
     for (let x = -10; x <= 10; x += 0.7) {
-      for (let z = -20; z <= 1; z += 0.9) {
+      for (let y = -6; y <= 6; y += 0.9) {
         for (const t of [0, 3.3, 120]) {
-          expect(Math.abs(fieldHeight(x, z, t))).toBeLessThanOrEqual(MAX_HEIGHT)
+          expect(Math.abs(fieldHeight(x, y, t))).toBeLessThanOrEqual(MAX_HEIGHT)
         }
       }
     }
@@ -40,46 +39,48 @@ describe('heightGlsl', () => {
 })
 
 describe('createGrid', () => {
-  const aspect = 16 / 10
-  const grid = createGrid(aspect, 200)
-  const viewProj = fieldViewProj(aspect)
+  const [width, height] = [1280, 800]
+  const grid = createGrid(width, height)
+  const viewProj = fieldViewProj(width / height)
+  const dots = height / FIELD.dotSpacingPx
+  const lines = grid.length / 2 / dots
+  const point = (line: number, dot: number) => {
+    const i = (line * dots + dot) * 2
+    const [cx, cy, , w] = toClip(viewProj, grid[i]!, grid[i + 1]!, 0)
+    return { x: cx / w, y: cy / w, w, worldX: grid[i]! }
+  }
 
-  it('has rows × cols points', () => {
-    expect(grid.length).toBe(FIELD.rows * 200 * 2)
+  it('builds whole vertical lines of dots', () => {
+    expect(Number.isInteger(lines)).toBe(true)
+    expect(lines).toBeGreaterThan(50)
+    expect(lines).toBeLessThanOrEqual(width / FIELD.lineSpacingPx + 1)
   })
 
-  it('goes away from the camera row by row', () => {
-    const rowZ = (row: number) => grid[row * 200 * 2 + 1]!
-    expect(rowZ(0)).toBeCloseTo(FIELD.zNear)
-    for (let r = 1; r < FIELD.rows; r++) expect(rowZ(r)).toBeLessThan(rowZ(r - 1))
-  })
-
-  it('spans a bit more than the view width in every row', () => {
-    for (const row of [0, 20, FIELD.rows - 1]) {
-      const first = row * 200 * 2
-      const last = first + 199 * 2
-      const [lx, , , lw] = toClip(viewProj, grid[first]!, 0, grid[first + 1]!)
-      const [rx, , , rw] = toClip(viewProj, grid[last]!, 0, grid[last + 1]!)
-      expect(lx / lw).toBeLessThan(-1)
-      expect(rx / rw).toBeGreaterThan(1)
-      expect(rx / rw).toBeLessThan(1.5)
+  it('keeps each line vertical and taller than the view', () => {
+    for (const line of [0, Math.floor(lines / 2), lines - 1]) {
+      const top = point(line, dots - 1)
+      const bottom = point(line, 0)
+      expect(top.worldX).toBe(bottom.worldX)
+      expect(top.y).toBeGreaterThan(1)
+      expect(bottom.y).toBeLessThan(-1)
     }
   })
 
-  it('puts the near rows in the lower half of the screen and the horizon in the upper half', () => {
-    const [, nearY, , nearW] = toClip(viewProj, 0, 0, grid[1]!)
-    const [, farY, , farW] = toClip(viewProj, 0, 0, grid[grid.length - 1]!)
-    expect(nearY / nearW).toBeLessThan(-0.5)
-    expect(farY / farW).toBeGreaterThan(0)
-    expect(farY / farW).toBeLessThan(1)
+  it('spaces lines evenly on screen from edge to edge', () => {
+    const xs = Array.from({ length: lines }, (_, line) => point(line, 0).x)
+    expect(xs[0]).toBeLessThan(-1)
+    expect(xs.at(-1)).toBeGreaterThan(1)
+    const gaps = xs.slice(1).map((x, i) => x - xs[i]!)
+    for (const gap of gaps) expect(gap).toBeCloseTo(gaps[0]!, 5)
   })
-})
 
-describe('gridCols', () => {
-  it('scales with the viewport width within limits', () => {
-    expect(gridCols(375)).toBe(FIELD.minCols)
-    expect(gridCols(1280)).toBe(256)
-    expect(gridCols(3840)).toBe(FIELD.maxCols)
+  it('turns the wall away from the camera: the right side is further', () => {
+    expect(point(lines - 1, 0).w).toBeGreaterThan(point(0, 0).w)
+    expect(point(lines - 1, 0).w).toBeLessThanOrEqual(FIELD.fadeEnd)
+  })
+
+  it('caps the point count on huge screens', () => {
+    expect(createGrid(7680, 4320).length / 2).toBeLessThanOrEqual(FIELD.maxLines * FIELD.maxDotsPerLine)
   })
 })
 

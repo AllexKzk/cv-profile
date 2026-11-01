@@ -1,39 +1,43 @@
-// Pure math of the live background: a plane of dot rows waving under a perspective camera.
-// The WebGL renderer runs the same height function in GLSL (see renderer.ts); the Canvas 2D
-// fallback and the tests use this TS copy.
+// Pure math of the live background: a wall of vertical dotted lines waving under a perspective
+// camera. The WebGL renderer runs the same height function in GLSL (see renderer.ts); the
+// Canvas 2D fallback and the tests use this TS copy.
 
 export type Mat4 = Float32Array
 
-/** Tuning knobs of the field. World units: the plane is y = 0, the camera looks along -z. */
+/**
+ * Tuning knobs of the field. World units: the wall is the plane z = 0 (x right, y up), waves
+ * push its dots along z, towards the camera. The camera looks at the wall from the front-left,
+ * so the lines bend sideways like a curtain and the right side recedes into the background.
+ */
 export const FIELD = {
-  rows: 70,
-  // Dots per row: about one per this many CSS px of viewport width
+  // Screen pitch of the dotted lines and of the dots along a line, CSS px
+  lineSpacingPx: 12,
   dotSpacingPx: 5,
-  minCols: 120,
-  maxCols: 400,
-  // Depth of the first row and the gap to the next one; each next gap grows by rowGrowth,
-  // so rows keep a similar spacing on screen instead of piling up at the horizon
-  zNear: 0.4,
-  rowGap: 0.08,
-  rowGrowth: 1.04,
-  // Rows are a bit wider than the view, so waves never show an edge
-  widthMargin: 1.15,
-  eye: [0, 1.6, 2] as const,
-  // ~12° below the horizon: the horizon lands in the upper third of the screen
-  target: [0, -0.53, -8] as const,
+  maxLines: 200,
+  maxDotsPerLine: 240,
+  // The grid is a bit larger than the view, so waves never show an edge (in NDC units)
+  overscan: 1.1,
+  // Camera: distance to the wall center and the turn away from facing it head-on
+  distance: 6,
+  yaw: (25 * Math.PI) / 180,
   fovY: (50 * Math.PI) / 180,
-  // Dot diameter in CSS px at a view distance of 3 units
-  pointSize: 2,
+  // Dot diameter in CSS px at the camera distance
+  pointSize: 2.4,
   // Animation speed multiplier for the wave time
   speed: 0.5,
   // Depth range (view distance) where the field fades into the background
-  fadeStart: 7,
-  fadeEnd: 20,
+  fadeStart: 8,
+  fadeEnd: 16,
   // Wave time of the static frame (reduced motion, no WebGL)
   staticTime: 12,
 } as const
 
-// Each wave: amplitude, direction (x, z), frequency, phase speed
+type Vec3 = readonly [number, number, number]
+
+const EYE: Vec3 = [-FIELD.distance * Math.sin(FIELD.yaw), 0, FIELD.distance * Math.cos(FIELD.yaw)]
+const TARGET: Vec3 = [0, 0, 0]
+
+// Each wave: amplitude, direction on the wall (x, y), frequency, phase speed
 const WAVES: ReadonlyArray<readonly [number, number, number, number, number]> = [
   [0.16, 0.42, 0.91, 0.9, 0.55],
   [0.11, -0.77, 0.64, 1.3, 0.43],
@@ -45,24 +49,24 @@ const WAVES: ReadonlyArray<readonly [number, number, number, number, number]> = 
 export const MAX_HEIGHT = WAVES.reduce((sum, [amp]) => sum + amp, 0)
 
 /**
- * Height of the surface at (x, z) and wave time t: a few crossing sine waves over slowly
- * warped coordinates, so the pattern never looks like a regular grid.
+ * Offset of the wall towards the camera at (x, y) and wave time t: a few crossing sine waves
+ * over slowly warped coordinates, so the pattern never looks like a regular grid.
  * Keep in sync with `height()` in the vertex shader.
  */
-export function fieldHeight(x: number, z: number, t: number): number {
-  const qx = x + 0.35 * Math.sin(z * 0.37 + t * 0.21)
-  const qz = z + 0.35 * Math.sin(x * 0.29 - t * 0.17)
+export function fieldHeight(x: number, y: number, t: number): number {
+  const qx = x + 0.35 * Math.sin(y * 0.37 + t * 0.21)
+  const qy = y + 0.35 * Math.sin(x * 0.29 - t * 0.17)
   let h = 0
-  for (const [amp, dx, dz, freq, speed] of WAVES) {
-    h += amp * Math.sin((qx * dx + qz * dz) * freq + t * speed)
+  for (const [amp, dx, dy, freq, speed] of WAVES) {
+    h += amp * Math.sin((qx * dx + qy * dy) * freq + t * speed)
   }
   return h
 }
 
 /** GLSL source of the same height function, generated from WAVES so the two never drift. */
 export function heightGlsl(): string {
-  const terms = WAVES.map(([amp, dx, dz, freq, speed]) =>
-    `${f(amp)} * sin(dot(q, vec2(${f(dx)}, ${f(dz)})) * ${f(freq)} + t * ${f(speed)})`,
+  const terms = WAVES.map(([amp, dx, dy, freq, speed]) =>
+    `${f(amp)} * sin(dot(q, vec2(${f(dx)}, ${f(dy)})) * ${f(freq)} + t * ${f(speed)})`,
   )
   return `float height(vec2 p, float t) {
   vec2 q = p + 0.35 * vec2(sin(p.y * 0.37 + t * 0.21), sin(p.x * 0.29 - t * 0.17));
@@ -74,34 +78,40 @@ function f(n: number): string {
   return Number.isInteger(n) ? `${n}.0` : String(n)
 }
 
-/** Number of dots per row for a viewport width in CSS px. */
-export function gridCols(cssWidth: number): number {
-  return Math.round(Math.min(Math.max(cssWidth / FIELD.dotSpacingPx, FIELD.minCols), FIELD.maxCols))
+/**
+ * Grid of (x, y) pairs on the wall: vertical dotted lines across the view. Line positions are
+ * picked by casting rays through evenly spaced screen columns, and each line spans the view
+ * height at its own depth with the same number of dots, so at rest lines and dots keep an even
+ * pitch on screen. Lines further than the fade range are dropped. Depends on the viewport:
+ * rebuild it on resize.
+ */
+export function createGrid(cssWidth: number, cssHeight: number): Float32Array {
+  const aspect = cssWidth / cssHeight
+  const lines = clampInt(cssWidth / FIELD.lineSpacingPx, 8, FIELD.maxLines)
+  const dots = clampInt(cssHeight / FIELD.dotSpacingPx, 20, FIELD.maxDotsPerLine)
+  const { right, forward } = cameraBasis()
+  const tanY = Math.tan(FIELD.fovY / 2)
+  const out: number[] = []
+  for (let i = 0; i < lines; i++) {
+    const ndcX = FIELD.overscan * (-1 + (2 * i) / (lines - 1))
+    // Ray through this screen column at mid height; forward has unit length, so the ray
+    // parameter at the hit point is the view distance
+    const dir = [0, 1, 2].map(k => forward[k]! + right[k]! * ndcX * tanY * aspect)
+    if (dir[2]! >= -1e-3) continue
+    const w = -EYE[2] / dir[2]!
+    if (w > FIELD.fadeEnd) continue
+    const x = EYE[0] + dir[0]! * w
+    const half = w * tanY * FIELD.overscan
+    for (let j = 0; j < dots; j++) out.push(x, -half + (2 * half * j) / (dots - 1))
+  }
+  return Float32Array.from(out)
 }
 
-/**
- * Grid of (x, z) pairs: rows of dots across the view. Every row spans the view width at its
- * own depth with the same number of dots, so dots keep a similar pitch on screen and each row
- * reads as a dotted line. Depends on the aspect ratio: rebuild it on resize.
- */
-export function createGrid(aspect: number, cols: number, rows = FIELD.rows): Float32Array {
-  const viewProj = fieldViewProj(aspect)
-  const halfTan = Math.tan(FIELD.fovY / 2) * aspect * FIELD.widthMargin
-  const grid = new Float32Array(cols * rows * 2)
-  let i = 0
-  let z = FIELD.zNear
-  let gap = FIELD.rowGap
-  for (let r = 0; r < rows; r++) {
-    // View distance of the row center gives the half width of the view at that depth
-    const half = toClip(viewProj, 0, 0, z)[3] * halfTan
-    for (let c = 0; c < cols; c++) {
-      grid[i++] = -half + (2 * half * c) / (cols - 1)
-      grid[i++] = z
-    }
-    z -= gap
-    gap *= FIELD.rowGrowth
-  }
-  return grid
+/** Unit right, up and forward vectors of the field camera. */
+export function cameraBasis(): { right: Vec3, up: Vec3, forward: Vec3 } {
+  const back = normalize([EYE[0] - TARGET[0], EYE[1] - TARGET[1], EYE[2] - TARGET[2]])
+  const right = normalize(cross([0, 1, 0], back))
+  return { right, up: cross(back, right), forward: [-back[0], -back[1], -back[2]] }
 }
 
 /** Column-major perspective matrix, as WebGL expects. */
@@ -116,8 +126,6 @@ export function perspective(fovY: number, aspect: number, near: number, far: num
   m[14] = 2 * far * near * nf
   return m
 }
-
-type Vec3 = readonly [number, number, number]
 
 /** Column-major view matrix of a camera at `eye` looking at `target`, y up. */
 export function lookAt(eye: Vec3, target: Vec3): Mat4 {
@@ -149,7 +157,7 @@ export function multiply(a: Mat4, b: Mat4): Mat4 {
 
 /** View-projection matrix of the field camera for a viewport aspect ratio. */
 export function fieldViewProj(aspect: number): Mat4 {
-  return multiply(perspective(FIELD.fovY, aspect, 0.1, 60), lookAt(FIELD.eye, FIELD.target))
+  return multiply(perspective(FIELD.fovY, aspect, 0.1, 60), lookAt(EYE, TARGET))
 }
 
 /** Transform a world point to clip space: [x, y, z, w]. */
@@ -163,13 +171,14 @@ export function toClip(m: Mat4, x: number, y: number, z: number): [number, numbe
 }
 
 /**
- * Dot size (CSS px) and alpha (0–1) at view distance `w` and height `y`: dots shrink and fade
- * with depth, crests are a bit brighter. Keep in sync with the vertex shader.
+ * Dot size (CSS px) and alpha (0–1) at view distance `w` and wave offset `h`: dots shrink and
+ * fade with depth, crests (closer to the camera) are a bit brighter. Keep in sync with the
+ * vertex shader.
  */
-export function dotStyle(w: number, y: number): { size: number, alpha: number } {
-  const size = (FIELD.pointSize * 3) / w
+export function dotStyle(w: number, h: number): { size: number, alpha: number } {
+  const size = (FIELD.pointSize * FIELD.distance) / w
   const depthFade = 1 - smoothstep(FIELD.fadeStart, FIELD.fadeEnd, w)
-  const crest = 0.55 + 0.45 * clamp(y / MAX_HEIGHT * 0.5 + 0.5, 0, 1)
+  const crest = 0.65 + 0.35 * clamp(h / MAX_HEIGHT * 0.5 + 0.5, 0, 1)
   // Sub-pixel dots are drawn at 1px and fade instead of shrinking further
   return { size: Math.max(size, 1), alpha: depthFade * crest * Math.min(size, 1) }
 }
@@ -200,6 +209,10 @@ export type Rgb = [number, number, number]
 function smoothstep(edge0: number, edge1: number, x: number): number {
   const t = clamp((x - edge0) / (edge1 - edge0), 0, 1)
   return t * t * (3 - 2 * t)
+}
+
+function clampInt(x: number, min: number, max: number): number {
+  return Math.round(clamp(x, min, max))
 }
 
 function clamp(x: number, min: number, max: number): number {
