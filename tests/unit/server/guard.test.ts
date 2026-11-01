@@ -23,6 +23,15 @@ describe('parseChatRequest', () => {
     expect(await parseChatRequest(requestBody(history))).not.toBeNull()
   })
 
+  it('accepts answered interview questions as the last message', async () => {
+    const asked: CvUIMessage = {
+      id: 'a1',
+      role: 'assistant',
+      parts: [{ type: 'tool-askQuestion', toolCallId: 'q', state: 'output-available', input: { slot: 'role', question: 'Role?' }, output: { kind: 'skipped' } }],
+    }
+    expect(await parseChatRequest(requestBody([userMessage('Hi'), asked], { scenario: 'interview' }))).not.toBeNull()
+  })
+
   it.each([
     ['empty body', undefined],
     ['broken JSON', '{'],
@@ -31,6 +40,8 @@ describe('parseChatRequest', () => {
     ['unknown locale', requestBody([userMessage('Hi')], { locale: 'de' })],
     ['last message from the assistant', requestBody([userMessage('Hi'), answer('a1')])],
     ['too long message', requestBody([userMessage('x'.repeat(2001))])],
+    ['unanswered question last', requestBody([userMessage('Hi'), { id: 'a', role: 'assistant', parts: [{ type: 'tool-askQuestion', toolCallId: 'q', state: 'input-available', input: { slot: 'role', question: 'Role?' } }] }])],
+    ['too long answer', requestBody([userMessage('Hi'), { id: 'a', role: 'assistant', parts: [{ type: 'tool-askQuestion', toolCallId: 'q', state: 'output-available', input: { slot: 'role', question: 'Role?' }, output: { kind: 'text', text: 'x'.repeat(2001) } }] }])],
     ['unknown CV section', requestBody([{ id: 'a', role: 'assistant', parts: [{ type: 'data-cv', data: { section: 'secrets' } }] } as unknown as CvUIMessage, userMessage('Hi')])],
     ['too many messages', requestBody(Array.from({ length: 21 }, (_, i) => userMessage('Hi', `u${i}`)))],
     ['oversized body', JSON.stringify({ pad: 'x'.repeat(MAX_BODY_BYTES) })],

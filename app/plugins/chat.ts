@@ -2,6 +2,7 @@ import { useChat } from '@ai-sdk/vue'
 import type { UseChatHelpers } from '@ai-sdk/vue'
 import { DefaultChatTransport } from 'ai'
 import { trimHistory } from '#shared/chat/history'
+import { chatScenario, isRoundAnswered } from '#shared/chat/interview'
 import type { CvUIMessage } from '#shared/types/chat'
 import { loadHistory, saveHistory } from '~/lib/chat-history'
 
@@ -14,11 +15,14 @@ export default defineNuxtPlugin((nuxtApp) => {
   const chat: UseChatHelpers<CvUIMessage> = useChat<CvUIMessage>({
     transport: new DefaultChatTransport<CvUIMessage>({
       api: '/api/chat',
-      // Only the tail the model sees: the server trims it anyway, this just sends less
+      // Only the tail the model sees: the server trims it anyway, this just sends less.
+      // The scenario comes from the whole history, before the cut.
       prepareSendMessagesRequest: ({ messages }) => ({
-        body: { messages: trimHistory(messages), scenario: 'free', locale: nuxtApp.$i18n.locale.value },
+        body: { messages: trimHistory(messages), scenario: chatScenario(messages), locale: nuxtApp.$i18n.locale.value },
       }),
     }),
+    // A round of interview questions is answered: the agent goes on without a new user message
+    sendAutomaticallyWhen: ({ messages }) => isRoundAnswered(messages),
   })
 
   if (import.meta.client) {

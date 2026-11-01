@@ -5,7 +5,7 @@ import type { ChatContext } from '../../../server/utils/chat'
 import { noopLimiter } from '../../../server/utils/rate-limit'
 import type { Limiter } from '../../../server/utils/rate-limit'
 import type { CvUIMessage } from '../../../shared/types/chat'
-import { mockModel, requestBody, textStep, toolStep, userMessage } from './helpers'
+import { mockModel, requestBody, textStep, toolCallsStep, toolStep, userMessage } from './helpers'
 
 function context(overrides: Partial<ChatContext> = {}): ChatContext {
   return {
@@ -115,5 +115,61 @@ describe('handleChat', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     const response = await handleChat(context({ model: null }))
     expect(await errorCode(response)).toBe('model_error')
+  })
+  describe('interview', () => {
+    const started: CvUIMessage = {
+      id: 'u1',
+      role: 'user',
+      parts: [{ type: 'text', text: 'Who are you looking for?' }, { type: 'data-interview', data: {} }],
+    }
+    const interview = (messages: CvUIMessage[]) => requestBody(messages, { scenario: 'interview' })
+
+    it('a round of questions ends the stream and waits for the visitor', async () => {
+      const model = mockModel(toolCallsStep(
+        { name: 'askQuestion', input: { slot: 'role', question: 'Which role?' } },
+        { name: 'askQuestion', input: { slot: 'seniority', question: 'Which level?' } },
+      ))
+      const answer = await readAnswer(await handleChat(context({ body: interview([started]), model })))
+      const questions = answer.parts.filter(p => p.type === 'tool-askQuestion')
+      expect(questions).toHaveLength(2)
+      expect(questions.every(p => p.state === 'input-available')).toBe(true)
+      // The client tool has no execute: the model is not called again
+      expect(model.doStreamCalls).toHaveLength(1)
+      expect(model.doStreamCalls[0]!.prompt.at(1)).toMatchObject({
+        content: expect.arrayContaining([{ type: 'text', text: '[The visitor started the interview]' }]),
+      })
+    })
+
+    it('continues after answered questions and submits the brief with the fit', async () => {
+      const asked: CvUIMessage = {
+        id: 'a1',
+        role: 'assistant',
+        parts: [
+          { type: 'step-start' },
+          { type: 'tool-askQuestion', toolCallId: 'q1', state: 'output-available', input: { slot: 'mustHave', question: 'Stack?' }, output: { kind: 'options', values: ['Vue', 'Angular'] } },
+        ],
+      }
+      const model = mockModel(
+        toolCallsStep({ name: 'submitBrief', input: { role: 'Frontend', mustHave: ['Vue', 'Angular'], format: ['remote'] } }),
+        textStep('Strong fit on Vue.'),
+      )
+      const answer = await readAnswer(await handleChat(context({ body: interview([started, asked]), model })))
+
+      expect(answer.parts.find(p => p.type === 'tool-submitBrief')).toMatchObject({
+        state: 'output-available',
+        output: {
+          brief: { role: 'Frontend' },
+          fit: { mustHave: [{ name: 'Vue', inCv: true }, { name: 'Angular', inCv: false }], format: 'match' },
+        },
+      })
+      expect(model.doStreamCalls[0]!.prompt.at(-1)).toMatchObject({ role: 'tool' })
+      expect(model.doStreamCalls[0]!.tools?.map(tool => tool.name)).toEqual(['showCvSection', 'askQuestion', 'submitBrief'])
+    })
+
+    it('the free scenario has no interview tools', async () => {
+      const model = mockModel(textStep('Hi'))
+      await readAnswer(await handleChat(context({ model })))
+      expect(model.doStreamCalls[0]!.tools?.map(tool => tool.name)).toEqual(['showCvSection'])
+    })
   })
 })

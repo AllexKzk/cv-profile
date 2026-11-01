@@ -1,6 +1,7 @@
 import { safeValidateUIMessages } from 'ai'
 import { z } from 'zod'
 import { CHAT_LIMITS } from '#shared/chat/history'
+import { isRoundAnswered } from '#shared/chat/interview'
 import { LOCALES } from '#shared/cv'
 import { CHAT_SCENARIOS, cvDataSchemas, cvToolSchemas } from '#shared/types/chat'
 import type { CvUIMessage } from '#shared/types/chat'
@@ -42,8 +43,9 @@ export async function parseChatRequest(raw: string | undefined): Promise<ChatReq
   })
   if (!messages.success) return null
 
+  // The visitor speaks last: a message, or the answers to a round of interview questions
   const last = messages.data.at(-1)
-  if (last?.role !== 'user') return null
+  if (last?.role !== 'user' && !isRoundAnswered(messages.data)) return null
   // Only users write free text, and the UI never lets them send more than the limit
   if (messages.data.some(m => m.role === 'user' && textLength(m) > CHAT_LIMITS.messageChars)) return null
   if (messages.data.some(m => m.role === 'system')) return null

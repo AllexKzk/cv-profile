@@ -25,6 +25,24 @@ function mockApi(...responses: Array<UIMessageChunk[] | Response>) {
   return fetch
 }
 
+// The body /api/chat got with the n-th request
+const requestOf = (fetch: ReturnType<typeof mockApi>, n: number) =>
+  JSON.parse((fetch.mock.calls[n] as unknown as [string, RequestInit])[1].body as string)
+
+// A round of interview questions (client tool calls without output)
+const questions = (...slots: string[]): UIMessageChunk[] => [
+  { type: 'start' },
+  { type: 'start-step' },
+  ...slots.map((slot, index): UIMessageChunk => ({
+    type: 'tool-input-available',
+    toolCallId: `q${index}`,
+    toolName: 'askQuestion',
+    input: { slot, question: `${slot}?` },
+  })),
+  { type: 'finish-step' },
+  { type: 'finish' },
+]
+
 const textAnswer = (text: string): UIMessageChunk[] => [
   { type: 'start' },
   { type: 'text-start', id: 't' },
@@ -53,14 +71,51 @@ describe('chat shell', () => {
     expect(wrapper.findAll('.message')).toHaveLength(0)
   })
 
-  it('a quick action adds a question and a stub answer', async () => {
+  it('"Who are you looking for?" starts the interview with a round of questions', async () => {
+    const fetch = mockApi(questions('role', 'seniority'), textAnswer('Thanks!'))
     const wrapper = await mountInApp(ChatShell)
     await wrapper.findAll('.actions button')[1]!.trigger('click')
+    await flushPromises()
 
-    const messages = wrapper.findAll('.message')
-    expect(messages.map(m => m.text())).toEqual(['Who are you looking for?', 'This feature is coming soon.'])
-    expect(wrapper.find('.actions:not(.compact)').exists()).toBe(false)
+    const first = requestOf(fetch, 0)
+    expect(first.scenario).toBe('interview')
+    expect(first.messages[0].parts).toContainEqual({ type: 'data-interview', data: {} })
+    expect(wrapper.find('.message.user').text()).toBe('Who are you looking for?')
     expect(wrapper.find('.actions.compact').exists()).toBe(true)
+
+    const widgets = wrapper.findAll('.question')
+    expect(widgets).toHaveLength(2)
+    await widgets[0]!.findAll('.option')[0]!.trigger('click')
+    await flushPromises()
+    // Half a round is not sent
+    expect(fetch).toHaveBeenCalledTimes(1)
+
+    await widgets[1]!.findAll('.option').find(b => b.text() === 'Senior')!.trigger('click')
+    await flushPromises()
+    expect(fetch).toHaveBeenCalledTimes(2)
+    const second = requestOf(fetch, 1)
+    expect(second.scenario).toBe('interview')
+    expect(second.messages.at(-1).role).toBe('assistant')
+    expect(wrapper.findAll('.question.answered').map(w => w.find('.answer').text())).toEqual(['Frontend', 'Senior'])
+    expect(wrapper.text()).toContain('Thanks!')
+  })
+
+  it('typed text answers the open questions instead of a new message', async () => {
+    const fetch = mockApi(questions('role', 'seniority'), textAnswer('Got it.'))
+    const wrapper = await mountInApp(ChatShell)
+    await wrapper.findAll('.actions button')[1]!.trigger('click')
+    await flushPromises()
+
+    await wrapper.find('textarea').setValue('Senior Vue developer')
+    await wrapper.find('form.input').trigger('submit')
+    await flushPromises()
+
+    expect(fetch).toHaveBeenCalledTimes(2)
+    const outputs = requestOf(fetch, 1).messages.at(-1).parts
+      .filter((p: { type: string }) => p.type === 'tool-askQuestion')
+      .map((p: { output: unknown }) => p.output)
+    expect(outputs).toEqual([{ kind: 'text', text: 'Senior Vue developer' }, { kind: 'skipped' }])
+    expect(wrapper.findAll('.message.user')).toHaveLength(1)
   })
 
   it('a typed message is answered by /api/chat with Markdown', async () => {

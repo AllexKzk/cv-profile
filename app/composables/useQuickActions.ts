@@ -32,18 +32,30 @@ export function useVacancyPicker() {
   return { open }
 }
 
-// Handlers of the quick buttons. The rest are stubs until F3–F5 replace them.
-export function useQuickActions() {
+// Starts the interview: the invisible `data-interview` part switches the chat to that scenario
+export function useStartInterview() {
   const { t } = useI18n()
-  const exchange = useLocalExchange()
+  const { status, sendMessage, clearError } = useCvChat()
+
+  return () => {
+    // Another answer is on its way: the composer is busy too
+    if (status.value === 'submitted' || status.value === 'streaming') return
+    clearError()
+    sendMessage({ parts: [{ type: 'text', text: t('chat.actions.lookingFor') }, { type: 'data-interview', data: {} }] })
+  }
+}
+
+// Handlers of the quick buttons. Uploading a vacancy is a stub until F5.
+export function useQuickActions() {
   const picker = useVacancyPicker()
   const scenarios = useLocalScenarios()
+  const startInterview = useStartInterview()
 
   function run(id: QuickActionId) {
     if (id === 'showCv') return scenarios.showCv()
     if (id === 'downloadCv') return scenarios.downloadCv()
     if (id === 'uploadVacancy') return picker.open()
-    exchange(t(`chat.actions.${id}`), t('chat.stub.soon'))
+    startInterview()
   }
 
   return { actions: QUICK_ACTIONS, run }
