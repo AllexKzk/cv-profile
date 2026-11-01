@@ -1,12 +1,12 @@
 <script setup lang="ts">
-// Frame of a CV section: an evenly frosted glass card with an optional heading
+// Frame of a CV section: a liquid glass card with an optional heading
 defineProps<{ title?: string }>()
 </script>
 
 <template>
   <section
     class="card"
-    data-glass="frost"
+    data-glass
   >
     <h3
       v-if="title"

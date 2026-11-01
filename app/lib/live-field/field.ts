@@ -32,17 +32,13 @@ export const FIELD = {
   sideFadePx: 120,
 } as const
 
-/**
- * A glass block on screen: CSS px from the viewport top left, `r` is its corner radius.
- * `lens` bends the picture along the edge; without it the whole block is evenly frosted.
- */
+/** A glass block on screen: CSS px from the viewport top left, `r` is its corner radius. */
 export interface GlassRect {
   x: number
   y: number
   w: number
   h: number
   r: number
-  lens: boolean
 }
 
 /** Signed distance from (px, py) to a rounded rectangle: negative inside. */
@@ -65,7 +61,6 @@ export function glassAt(x: number, y: number, rects: readonly GlassRect[]): { sx
   for (const rect of rects) {
     const d = roundedBoxSdf(x, y, rect)
     if (d >= 0) continue
-    if (!rect.lens) return { sx: x, sy: y, sharp: 0, inside: true }
     let sx = x - (x - rect.x - rect.w / 2) * magnify
     let sy = y - (y - rect.y - rect.h / 2) * magnify
     const t = clamp(1 + d / bevelPx, 0, 1)
@@ -340,17 +335,15 @@ float boxSdf(vec2 p, vec4 rect, float radius) {
   return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
 }
 
-// Glass blocks: x, y, width, height (CSS px; zero width means unused) and shape: corner radius,
-// lens flag. Declared by the renderer. Returns the sample point, sharpness and an inside flag
+// Glass blocks: x, y, width, height (CSS px; zero width means unused) and corner radii.
+// Declared by the renderer. Returns the sample point, sharpness and an inside flag
 vec4 glass(vec2 p) {
   for (int k = 0; k < ${FIELD.glass.max}; k++) {
     vec4 rect = uGlass[k];
-    float radius = uGlassShape[k].x;
+    float radius = uGlassRadius[k];
     if (rect.z > 0.0) {
       float d = boxSdf(p, rect, radius);
       if (d < 0.0) {
-        // Without a lens the whole block is evenly frosted
-        if (uGlassShape[k].y < 0.5) return vec4(p, 0.0, 1.0);
         vec2 s = p - (p - rect.xy - rect.zw * 0.5) * ${f(FIELD.glass.magnify)};
         float t = clamp(1.0 + d / ${f(FIELD.glass.bevelPx)}, 0.0, 1.0);
         if (t > 0.0) {

@@ -153,7 +153,7 @@ describe('rippleAt', () => {
 })
 
 describe('glassAt', () => {
-  const card = { x: 100, y: 100, w: 400, h: 200, r: 14, lens: true }
+  const card = { x: 100, y: 100, w: 400, h: 200, r: 14 }
   const { bevelPx, pullPx } = FIELD.glass
 
   it('measures the distance to a rounded block', () => {
@@ -177,17 +177,6 @@ describe('glassAt', () => {
     expect(g.sharp).toBeGreaterThan(0.9)
     // Pulled up from beyond the top edge, minus the slight magnification towards the middle
     expect(g.sy).toBeLessThan(101 - pullPx * 0.7)
-  })
-
-  it('frosts a block without a lens evenly, edge included', () => {
-    const frosted = { ...card, lens: false }
-    expect(glassAt(300, 101, [frosted])).toEqual({ sx: 300, sy: 101, sharp: 0, inside: true })
-  })
-
-  it('lets a nested block passed first win over its container', () => {
-    const button = { x: 120, y: 120, w: 80, h: 30, r: 8, lens: true }
-    const inButton = glassAt(121, 135, [button, { ...card, lens: false }])
-    expect(inButton.sharp).toBeGreaterThan(0.9)
   })
 
   it('frosts again deeper than the bevel', () => {

@@ -106,7 +106,7 @@ uniform vec3 uColor;
 uniform vec2 uOffset;
 uniform vec4 uRipples[${FIELD.ripple.max}];
 uniform vec4 uGlass[${FIELD.glass.max}];
-uniform vec2 uGlassShape[${FIELD.glass.max}];
+uniform float uGlassRadius[${FIELD.glass.max}];
 uniform vec2 uColumn;
 // Opacity in the chat column, beyond it, inside glass blocks
 uniform vec3 uOpacity;
@@ -143,7 +143,7 @@ function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, option
   const tilt = { x: 0, y: 0, targetX: 0, targetY: 0 }
   let ripples: Array<{ x: number, y: number, start: number }> = []
   const glass = new Float32Array(FIELD.glass.max * 4)
-  const glassShape = new Float32Array(FIELD.glass.max * 2)
+  const glassRadius = new Float32Array(FIELD.glass.max)
   let column: [number, number] = [0, 1e6]
   // One more frame is needed (glass blocks moved, the column changed) even if nothing animates
   let dirty = false
@@ -189,7 +189,7 @@ function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, option
       offset: loc('uOffset'),
       ripples: loc('uRipples'),
       glass: loc('uGlass'),
-      glassShape: loc('uGlassShape'),
+      glassRadius: loc('uGlassRadius'),
       column: loc('uColumn'),
       opacity: loc('uOpacity'),
     }
@@ -220,7 +220,7 @@ function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, option
     gl.uniform2f(uniforms.offset, tiltX * FIELD.tilt.offset, tiltY * FIELD.tilt.offset)
     gl.uniform4fv(uniforms.ripples, packed)
     gl.uniform4fv(uniforms.glass, glass)
-    gl.uniform2fv(uniforms.glassShape, glassShape)
+    gl.uniform1fv(uniforms.glassRadius, glassRadius)
     gl.uniform2f(uniforms.column, column[0], column[1])
     gl.uniform3f(uniforms.opacity, opacity.column, opacity.side, opacity.glass)
     gl.uniform3f(uniforms.color, color[0], color[1], color[2])
@@ -331,10 +331,10 @@ function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, option
     },
     setGlass(rects) {
       glass.fill(0)
-      glassShape.fill(0)
+      glassRadius.fill(0)
       rects.slice(0, FIELD.glass.max).forEach((r, k) => {
         glass.set([r.x, r.y, r.w, r.h], k * 4)
-        glassShape.set([r.r, r.lens ? 1 : 0], k * 2)
+        glassRadius[k] = r.r
       })
       dirty = true
       sync()
