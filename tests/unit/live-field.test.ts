@@ -9,6 +9,8 @@ import {
   ribShade,
   ribTraits,
   rippleAt,
+  glassAt,
+  roundedBoxSdf,
 } from '../../app/lib/live-field/field'
 
 describe('lightAt', () => {
@@ -112,9 +114,9 @@ describe('fieldGlsl', () => {
   })
 
   it('writes every number as a GLSL float literal', () => {
-    // A bare integer next to a float operation does not compile in GLSL ES 1.0; the ripple
-    // loop counter is the one int on purpose
-    const glsl = fieldGlsl().replace(/for \(int k = 0; k < \d+; k\+\+\)/, '')
+    // A bare integer next to a float operation does not compile in GLSL ES 1.0; loop
+    // counters are the only ints on purpose
+    const glsl = fieldGlsl().replace(/for \(int k = 0; k < \d+; k\+\+\)/g, '')
     expect(glsl).not.toMatch(/[^.\w]\d+[^.\d\w]/)
   })
 })
@@ -145,6 +147,33 @@ describe('rippleAt', () => {
   it('fades out by the end of its life', () => {
     const age = FIELD.ripple.lifeS
     expect(rippleAt(age * FIELD.ripple.speedPx, 0, ring(age))[2]).toBeLessThan(1e-6)
+  })
+})
+
+describe('glassAt', () => {
+  const card = { x: 100, y: 100, w: 400, h: 200 }
+
+  it('measures the distance to a rounded block', () => {
+    expect(roundedBoxSdf(300, 200, card, FIELD.glass.radiusPx)).toBeCloseTo(-100)
+    expect(roundedBoxSdf(300, 90, card, FIELD.glass.radiusPx)).toBeCloseTo(10)
+  })
+
+  it('lights the rim, the top edge more than the bottom one', () => {
+    const [, , top] = glassAt(300, 100, [card])
+    const [, , bottom] = glassAt(300, 300, [card])
+    expect(top).toBeGreaterThan(0.9)
+    expect(bottom).toBeGreaterThan(0.2)
+    expect(top).toBeGreaterThan(bottom)
+  })
+
+  it('pulls the picture outwards near the edge and leaves the outside alone', () => {
+    const [, dyNearTop] = glassAt(300, 104, [card])
+    expect(dyNearTop).toBeLessThan(-20)
+    expect(glassAt(300, 40, [card])).toEqual([0, 0, 0])
+  })
+
+  it('stays finite on the center line of a block', () => {
+    for (const value of glassAt(300, 200, [card])) expect(Number.isFinite(value)).toBe(true)
   })
 })
 

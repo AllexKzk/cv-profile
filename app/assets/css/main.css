@@ -87,6 +87,8 @@
   /* Live background: dot color and peak opacity of the field (see LiveBackground) */
   --field-dot: var(--foreground);
   --field-opacity: 0.12;
+  /* Liquid glass blocks: the light catching the top edge */
+  --glass-rim: oklch(1 0 0 / 70%);
 }
 
 .dark {
@@ -122,12 +124,20 @@
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.552 0.016 285.938);
   --field-opacity: 0.18;
+  --glass-rim: oklch(1 0 0 / 14%);
 }
 
 /* Blocks over the live background: a semi-opaque theme fill that blurs the field under it.
    Every blur layer is redrawn on each frame of the field, so phones get a denser fill without blur. */
 @utility surface {
   @apply bg-card/90 sm:bg-card/70 sm:backdrop-blur-md;
+}
+
+/* Liquid glass blocks (mark them with data-glass so the background bends at their edges):
+   a clearer fill and a light blur, so the bent picture shows through, and a lit top edge */
+@utility glass {
+  @apply bg-card/50 backdrop-blur-[3px];
+  box-shadow: inset 0 1px 0 var(--glass-rim);
 }
 
 
