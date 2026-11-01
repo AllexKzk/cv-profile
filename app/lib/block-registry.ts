@@ -1,8 +1,11 @@
 import type { Component } from 'vue'
 import type { CvMessagePart, CvUIMessage } from '#shared/types/chat'
+import BriefCard from '~/components/blocks/BriefCard.vue'
 import CvDownloadBlock from '~/components/blocks/CvDownloadBlock.vue'
 import CvSectionBlock from '~/components/blocks/CvSectionBlock.vue'
+import LeadSentBlock from '~/components/blocks/LeadSentBlock.vue'
 import MarkdownBlock from '~/components/blocks/MarkdownBlock.vue'
+import QuestionWidget from '~/components/blocks/QuestionWidget.vue'
 import TextBlock from '~/components/blocks/TextBlock.vue'
 
 type PartType = CvMessagePart['type']
@@ -13,10 +16,13 @@ export const blockRegistry: Partial<Record<PartType, Component>> = {
   'data-cv': CvSectionBlock,
   'data-download': CvDownloadBlock,
   'tool-showCvSection': CvSectionBlock,
+  'tool-askQuestion': QuestionWidget,
+  'tool-submitBrief': BriefCard,
+  'data-lead': LeadSentBlock,
 }
 
-// Service parts of AI SDK that have nothing to show
-const SILENT_PARTS = new Set<string>(['step-start', 'reasoning'])
+// Service parts of AI SDK and markers that have nothing to show
+const SILENT_PARTS = new Set<string>(['step-start', 'reasoning', 'data-interview'])
 
 export function resolveBlock(type: string, role: CvUIMessage['role']): Component | undefined {
   // Assistant text is Markdown; what the user typed stays plain text

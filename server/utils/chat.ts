@@ -9,7 +9,7 @@ import type { Limiter } from './rate-limit'
 import { scenarios } from './scenarios'
 
 export const MAX_OUTPUT_TOKENS = 800
-// Tool call + the answer after it, with one spare step
+// Tool call + the answer after it, with one spare step. A client tool (askQuestion) ends the run itself.
 const MAX_STEPS = 3
 
 export interface ChatContext {
@@ -42,6 +42,8 @@ function convertDataPart(part: { type: string, data: unknown }) {
     return { type: 'text' as const, text: `[The CV section "${section}" was shown to the user]` }
   }
   if (part.type === 'data-download') return { type: 'text' as const, text: '[A CV download card was shown to the user]' }
+  if (part.type === 'data-interview') return { type: 'text' as const, text: '[The visitor started the interview]' }
+  if (part.type === 'data-lead') return { type: 'text' as const, text: '[The visitor sent their contact to the candidate from the brief card]' }
   return undefined
 }
 
@@ -62,8 +64,9 @@ export async function handleChat(ctx: ChatContext): Promise<Response> {
 
   const scenario = scenarios[request.scenario]
   const cv = getCv(request.locale)
+  const tools = scenario.tools(cv)
   const messages = await convertToModelMessages<CvUIMessage>(trimHistory(request.messages), {
-    tools: scenario.tools,
+    tools,
     ignoreIncompleteToolCalls: true,
     convertDataPart,
   })
@@ -72,7 +75,7 @@ export async function handleChat(ctx: ChatContext): Promise<Response> {
     model: ctx.model,
     system: scenario.system(cv, ctx.now),
     messages,
-    tools: scenario.tools,
+    tools,
     stopWhen: isStepCount(MAX_STEPS),
     maxOutputTokens: MAX_OUTPUT_TOKENS,
     onFinish: async ({ steps, totalUsage }) => {

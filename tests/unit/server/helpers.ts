@@ -35,6 +35,20 @@ export function toolStep(section: string, cost = 0.001, items?: string[]): Langu
   ]
 }
 
+// One step with calls of any tools, as the model would make them in parallel
+export function toolCallsStep(...calls: Array<{ name: string, input: unknown }>): LanguageModelV4StreamPart[] {
+  return [
+    { type: 'stream-start', warnings: [] },
+    ...calls.map((call, index): LanguageModelV4StreamPart => ({
+      type: 'tool-call',
+      toolCallId: `call-${index + 1}`,
+      toolName: call.name,
+      input: JSON.stringify(call.input),
+    })),
+    finish('tool-calls', 0.001),
+  ]
+}
+
 // A model that answers each step with the next list of stream parts
 export function mockModel(...steps: LanguageModelV4StreamPart[][]) {
   let step = 0

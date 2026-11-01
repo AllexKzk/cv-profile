@@ -91,3 +91,45 @@ export function createUpstashLimiter({ url, token }: RedisCredentials, config: L
   })
   return createLimiter(redis, window, config)
 }
+
+export interface LeadLimitsConfig {
+  // Sent leads per IP per UTC day
+  ipDaily: number
+  // Sent leads of the whole site per UTC day
+  daily: number
+}
+
+export interface LeadLimiter {
+  // Whether one more lead may be sent
+  check: (ip: string) => Promise<boolean>
+  // Counts a lead that reached Telegram: a failed attempt does not use the limit up
+  record: (ip: string) => Promise<void>
+}
+
+export const noopLeadLimiter: LeadLimiter = {
+  check: async () => true,
+  record: async () => {},
+}
+
+// Daily counters, separate from the chat limits: leads do not touch the LLM budget
+export function createLeadLimiter(store: LimiterStore, config: LeadLimitsConfig, now = () => new Date()): LeadLimiter {
+  const ipKey = (ip: string) => `cv:lead-ip:${ip}:${today(now())}`
+  const dailyKey = () => `cv:lead-daily:${today(now())}`
+  const count = async (key: string) => Number(await store.get<number | string>(key) ?? 0)
+
+  return {
+    async check(ip) {
+      return await count(ipKey(ip)) < config.ipDaily && await count(dailyKey()) < config.daily
+    },
+    async record(ip) {
+      for (const key of [ipKey(ip), dailyKey()]) {
+        if (await store.incr(key) === 1) await store.expire(key, DAY_TTL)
+      }
+    },
+  }
+}
+
+export function createUpstashLeadLimiter({ url, token }: RedisCredentials, config: LeadLimitsConfig): LeadLimiter {
+  if (!url || !token) return noopLeadLimiter
+  return createLeadLimiter(new Redis({ url, token }), config)
+}

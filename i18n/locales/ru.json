@@ -81,5 +81,106 @@
     },
     "products": "Продукты",
     "achievements": "Достижения"
+  },
+  "interview": {
+    "options": {
+      "role": {
+        "frontend": "Frontend",
+        "fullstack": "Fullstack",
+        "lead": "Tech Lead / Team Lead"
+      },
+      "seniority": {
+        "middle": "Middle",
+        "senior": "Senior",
+        "lead": "Lead",
+        "staff": "Staff+"
+      },
+      "format": {
+        "remote": "Удалённо",
+        "hybrid": "Гибрид",
+        "office": "Офис"
+      },
+      "domain": {
+        "fintech": "Финтех",
+        "ecommerce": "E-commerce",
+        "saas": "B2B SaaS",
+        "media": "Медиа",
+        "internal": "Внутренние инструменты"
+      },
+      "employment": {
+        "full": "Полная занятость",
+        "part": "Частичная",
+        "contract": "Контракт / B2B"
+      },
+      "start": {
+        "asap": "Как можно скорее",
+        "month": "В течение месяца",
+        "quarter": "Через 1–3 месяца",
+        "flexible": "Гибко"
+      }
+    },
+    "custom": "Свой вариант",
+    "add": "Добавить",
+    "done": "Готово",
+    "skip": "Пропустить",
+    "skipped": "Пропущено",
+    "textPlaceholder": "Ваш ответ",
+    "salary": {
+      "min": "От",
+      "max": "До",
+      "from": "от {value}",
+      "to": "до {value}",
+      "period": {
+        "month": "в месяц",
+        "year": "в год"
+      }
+    }
+  },
+  "brief": {
+    "title": "Бриф вакансии",
+    "notSpecified": "не указано",
+    "fields": {
+      "role": "Роль",
+      "mustHave": "Обязательный стек",
+      "niceToHave": "Будет плюсом",
+      "format": "Формат",
+      "location": "Локация",
+      "domain": "Домен",
+      "employment": "Занятость",
+      "salary": "Вилка",
+      "start": "Старт",
+      "company": "Компания",
+      "notes": "Заметки"
+    },
+    "inCv": "Есть в резюме",
+    "notInCv": "Нет в резюме",
+    "stackFit": "Обязательный стек: {matched} из {total} есть в резюме.",
+    "formatFit": {
+      "match": "подходит",
+      "relocation": "с релокацией",
+      "mismatch": "не подходит"
+    },
+    "cta": "Отправить Александру",
+    "sent": "Заявка отправлена"
+  },
+  "lead": {
+    "title": "Связаться: {name}",
+    "description": "Бриф и ваш контакт придут ему в Telegram. Отправляется только по кнопке.",
+    "contact": "Контакт",
+    "contactHint": "Telegram, email или телефон",
+    "name": "Имя",
+    "company": "Компания",
+    "comment": "Комментарий",
+    "submit": "Отправить",
+    "sent": "Заявка отправлена. Александр свяжется с вами по указанному контакту.",
+    "writeDirect": "Написать в Telegram",
+    "error": {
+      "invalid": "Проверьте поля формы.",
+      "forbidden": "Форма работает только на оригинальном сайте.",
+      "rate_limit": "Сегодня заявка уже отправлена.",
+      "unavailable": "Отправка заявок сейчас не работает.",
+      "send_failed": "Не получилось отправить заявку. Попробуйте ещё раз или",
+      "network": "Не получилось отправить заявку. Проверьте соединение или"
+    }
   }
 }

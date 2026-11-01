@@ -1,5 +1,6 @@
 import type { UIMessage } from 'ai'
 import { z } from 'zod'
+import { askQuestionInputSchema, askQuestionOutputSchema, submitBriefOutputSchema, vacancyBriefSchema } from '../interview/brief'
 
 // CV sections that can be shown as blocks, in the order of a full CV
 export const CV_SECTIONS = ['hero', 'about', 'experience', 'education', 'skills'] as const
@@ -17,6 +18,10 @@ const cvSectionSchema = z.object({
 export const cvDataSchemas = {
   cv: cvSectionSchema,
   download: z.object({}),
+  // Invisible marker in the user message of the quick action: the interview starts here
+  interview: z.object({}),
+  // Confirmation of a sent lead; `source` is the toolCallId of the brief it was sent from
+  lead: z.object({ source: z.string().min(1).max(100) }),
 }
 
 export type CvDataParts = { [K in keyof typeof cvDataSchemas]: z.infer<typeof cvDataSchemas[K]> }
@@ -27,6 +32,10 @@ export type CvDataParts = { [K in keyof typeof cvDataSchemas]: z.infer<typeof cv
 export const cvToolSchemas = {
   // Server tool: the agent shows a CV block instead of retelling it
   showCvSection: { inputSchema: cvSectionSchema, outputSchema: cvSectionSchema },
+  // Client tool (no execute): a question with a widget, the visitor's answer is its output
+  askQuestion: { inputSchema: askQuestionInputSchema, outputSchema: askQuestionOutputSchema },
+  // Server tool: the collected brief and its quick fit against the CV
+  submitBrief: { inputSchema: vacancyBriefSchema, outputSchema: submitBriefOutputSchema },
 }
 
 type ToolTypes<T extends Record<string, { inputSchema: z.ZodType, outputSchema: z.ZodType }>> = {
@@ -40,8 +49,8 @@ export type CvMessagePart = CvUIMessage['parts'][number]
 export type CvDataPart<K extends keyof CvDataParts> = Extract<CvMessagePart, { type: `data-${K}` }>
 export type CvToolPart<K extends keyof CvTools> = Extract<CvMessagePart, { type: `tool-${K}` }>
 
-// Conversation scenarios of /api/chat. F4–F6 add 'interview' and 'match'.
-export const CHAT_SCENARIOS = ['free'] as const
+// Conversation scenarios of /api/chat. F5–F6 add 'match'.
+export const CHAT_SCENARIOS = ['free', 'interview'] as const
 export type ChatScenario = typeof CHAT_SCENARIOS[number]
 
 // Error codes /api/chat answers with; the client maps them to i18n texts

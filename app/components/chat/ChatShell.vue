@@ -3,6 +3,7 @@ import { useElementSize } from '@vueuse/core'
 
 const { messages, status, error, sendMessage, stop, regenerate } = useCvChat()
 const picker = useVacancyPicker()
+const answerByText = useAnswerByText()
 
 const isEmpty = computed(() => messages.value.length === 0)
 const busy = computed(() => status.value === 'submitted' || status.value === 'streaming')
@@ -16,7 +17,9 @@ const animateGreeting = computed(() => !greetingTyped.value && isEmpty.value)
 const composer = useTemplateRef('composer')
 const { height: composerHeight } = useElementSize(composer, undefined, { box: 'border-box' })
 
+// Typed text answers open interview questions first, otherwise it is a new message
 function send(text: string) {
+  if (answerByText(text)) return
   sendMessage({ text })
 }
 </script>

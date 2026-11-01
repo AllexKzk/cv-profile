@@ -30,6 +30,8 @@ export default defineNuxtConfig({
     dailyLlmLimit: 500,
     telegramBotToken: '',
     telegramChatId: '',
+    leadIpDailyLimit: 1,
+    leadDailyLimit: 20,
     public: {
       siteUrl: '',
     },
