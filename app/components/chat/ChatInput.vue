@@ -3,16 +3,23 @@ import { ArrowUp, Paperclip, Square } from '@lucide/vue'
 import { CHAT_LIMITS } from '#shared/chat/history'
 import { useTextareaAutosize } from '@vueuse/core'
 import { Textarea } from '@/components/ui/textarea'
+import type { VacancyAttachment } from '~/composables/useVacancyUpload'
+import AttachmentChip from './AttachmentChip.vue'
 
 const props = defineProps<{
   // The assistant is answering: typing is allowed, sending is not
   busy?: boolean
+  // A vacancy waiting to be sent with the message
+  attachment?: VacancyAttachment | null
 }>()
 
 const emit = defineEmits<{
   send: [text: string]
   stop: []
   attach: []
+  removeAttachment: []
+  // Pasted text longer than a message: it becomes a vacancy attachment instead of being cut
+  pasteLong: [text: string]
 }>()
 
 const text = ref('')
@@ -21,13 +28,23 @@ const element = computed(() => field.value?.$el as HTMLTextAreaElement | undefin
 
 useTextareaAutosize({ element, input: text })
 
-const canSend = computed(() => !props.busy && text.value.trim().length > 0)
+// An attachment alone is a message; one still uploading or failed blocks sending
+const attachmentReady = computed(() => props.attachment?.status === 'ready')
+const canSend = computed(() => !props.busy && !(props.attachment && !attachmentReady.value)
+  && (text.value.trim().length > 0 || attachmentReady.value))
 
 function submit() {
   if (!canSend.value) return
   emit('send', text.value.trim())
   text.value = ''
   element.value?.focus()
+}
+
+function onPaste(event: ClipboardEvent) {
+  const pasted = event.clipboardData?.getData('text/plain') ?? ''
+  if (pasted.length <= CHAT_LIMITS.messageChars) return
+  event.preventDefault()
+  emit('pasteLong', pasted)
 }
 
 function onEnter(event: KeyboardEvent) {
@@ -43,6 +60,16 @@ function onEnter(event: KeyboardEvent) {
     class="input"
     @submit.prevent="submit"
   >
+    <AttachmentChip
+      v-if="attachment"
+      :status="attachment.status"
+      :file-name="attachment.status === 'ready' ? attachment.data.fileName : attachment.fileName"
+      :chars="attachment.status === 'ready' ? attachment.data.text.length : undefined"
+      :truncated="attachment.status === 'ready' ? attachment.data.truncated : undefined"
+      :error="attachment.status === 'error' ? attachment.error : undefined"
+      removable
+      @remove="emit('removeAttachment')"
+    />
     <Textarea
       ref="field"
       v-model="text"
@@ -52,6 +79,7 @@ function onEnter(event: KeyboardEvent) {
       :placeholder="$t('chat.input.placeholder')"
       :aria-label="$t('chat.input.placeholder')"
       @keydown.enter="onEnter"
+      @paste="onPaste"
     />
     <div class="toolbar">
       <Tooltip>

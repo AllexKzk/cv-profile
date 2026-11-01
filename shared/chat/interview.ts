@@ -3,6 +3,8 @@ import type { ChatScenario, CvToolPart, CvUIMessage } from '../types/chat'
 // The scenario follows from history, so it survives a reload: once the quick action started
 // the interview, the chat stays in it until reset (the interview prompt answers questions too)
 export function chatScenario(messages: CvUIMessage[]): ChatScenario {
+  // A message with an attached vacancy is answered by the 'match' scenario
+  if (messages.at(-1)?.parts.some(part => part.type === 'data-vacancy')) return 'match'
   const started = messages.some(message =>
     message.role === 'user' && message.parts.some(part => part.type === 'data-interview'))
   return started ? 'interview' : 'free'

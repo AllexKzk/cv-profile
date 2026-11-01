@@ -1,8 +1,5 @@
 import { Download, FileText, FileUp, UserSearch } from '@lucide/vue'
-import { useFileDialog } from '@vueuse/core'
 import type { Component } from 'vue'
-
-export const VACANCY_FILE_ACCEPT = '.pdf,.docx,.md,.txt'
 
 export type QuickActionId = 'showCv' | 'lookingFor' | 'downloadCv' | 'uploadVacancy'
 
@@ -18,20 +15,6 @@ export const QUICK_ACTIONS: QuickAction[] = [
   { id: 'uploadVacancy', icon: FileUp },
 ]
 
-// Opens the file picker for a vacancy. In F1 the file is not uploaded anywhere (F5).
-export function useVacancyPicker() {
-  const { t } = useI18n()
-  const exchange = useLocalExchange()
-  const { open, onChange } = useFileDialog({ accept: VACANCY_FILE_ACCEPT, multiple: false, reset: true })
-
-  onChange((files) => {
-    const file = files?.[0]
-    if (file) exchange(file.name, t('chat.stub.soon'))
-  })
-
-  return { open }
-}
-
 // Starts the interview: the invisible `data-interview` part switches the chat to that scenario
 export function useStartInterview() {
   const { t } = useI18n()
@@ -45,16 +28,16 @@ export function useStartInterview() {
   }
 }
 
-// Handlers of the quick buttons. Uploading a vacancy is a stub until F5.
+// Handlers of the quick buttons
 export function useQuickActions() {
-  const picker = useVacancyPicker()
+  const vacancyDialog = useVacancyDialog()
   const scenarios = useLocalScenarios()
   const startInterview = useStartInterview()
 
   function run(id: QuickActionId) {
     if (id === 'showCv') return scenarios.showCv()
     if (id === 'downloadCv') return scenarios.downloadCv()
-    if (id === 'uploadVacancy') return picker.open()
+    if (id === 'uploadVacancy') return (vacancyDialog.value = true)
     startInterview()
   }
 

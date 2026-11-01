@@ -2,13 +2,12 @@ import { convertToModelMessages, isStepCount, streamText } from 'ai'
 import type { LanguageModel } from 'ai'
 import { trimHistory } from '#shared/chat/history'
 import { getCv } from '#shared/cv'
-import type { ChatErrorCode, CvUIMessage } from '#shared/types/chat'
+import type { ChatErrorCode, CvDataPart, CvUIMessage } from '#shared/types/chat'
 import { isForeignOrigin, parseChatRequest } from './guard'
 import { answerCost } from './openrouter'
 import type { Limiter } from './rate-limit'
-import { scenarios } from './scenarios'
+import { chatTools, scenarios } from './scenarios'
 
-export const MAX_OUTPUT_TOKENS = 800
 // Tool call + the answer after it, with one spare step. A client tool (askQuestion) ends the run itself.
 const MAX_STEPS = 3
 
@@ -35,16 +34,36 @@ export function errorResponse(code: ChatErrorCode): Response {
   return Response.json({ code }, { status: STATUS[code] })
 }
 
-// Data parts of local scenarios become short notes, so the agent knows what the user has already seen
-function convertDataPart(part: { type: string, data: unknown }) {
-  if (part.type === 'data-cv') {
-    const { section } = part.data as { section: string }
-    return { type: 'text' as const, text: `[The CV section "${section}" was shown to the user]` }
+const escapeAttribute = (value: string) => value.replace(/[<>&"]/g, char => `&#${char.charCodeAt(0)};`)
+
+// The vacancy goes to the model as tagged data. A closing tag inside the text is broken up,
+// so the text cannot end the block and pose as instructions after it.
+export function vacancyForModel({ source, fileName, text, truncated }: CvDataPart<'vacancy'>['data']): string {
+  const attributes = [`source="${source}"`]
+  if (fileName) attributes.push(`name="${escapeAttribute(fileName)}"`)
+  if (truncated) attributes.push('truncated="true"')
+  return `<vacancy ${attributes.join(' ')}>\n${text.replace(/<\/(vacancy)/gi, '<\\/$1')}\n</vacancy>`
+}
+
+// Data parts become text for the model: CV blocks as short notes, so the agent knows what the
+// user has already seen; the latest vacancy in full, earlier ones as a note (they are not paid
+// for again in every request).
+function dataPartConverter(messages: CvUIMessage[]) {
+  const latestVacancy = messages.flatMap(m => m.parts).findLast(part => part.type === 'data-vacancy')
+
+  return (part: CvUIMessage['parts'][number]) => {
+    if (part.type === 'data-cv') {
+      return { type: 'text' as const, text: `[The CV section "${part.data.section}" was shown to the user]` }
+    }
+    if (part.type === 'data-download') return { type: 'text' as const, text: '[A CV download card was shown to the user]' }
+    if (part.type === 'data-interview') return { type: 'text' as const, text: '[The visitor started the interview]' }
+    if (part.type === 'data-lead') return { type: 'text' as const, text: '[The visitor sent their contact to the candidate from the brief card]' }
+    if (part.type === 'data-vacancy') {
+      if (part === latestVacancy) return { type: 'text' as const, text: vacancyForModel(part.data) }
+      return { type: 'text' as const, text: `[A vacancy was attached earlier: ${part.data.fileName ?? 'pasted text'}]` }
+    }
+    return undefined
   }
-  if (part.type === 'data-download') return { type: 'text' as const, text: '[A CV download card was shown to the user]' }
-  if (part.type === 'data-interview') return { type: 'text' as const, text: '[The visitor started the interview]' }
-  if (part.type === 'data-lead') return { type: 'text' as const, text: '[The visitor sent their contact to the candidate from the brief card]' }
-  return undefined
 }
 
 // POST /api/chat without h3: guard → limits → model stream. Kept apart from the route for tests.
@@ -64,11 +83,12 @@ export async function handleChat(ctx: ChatContext): Promise<Response> {
 
   const scenario = scenarios[request.scenario]
   const cv = getCv(request.locale)
-  const tools = scenario.tools(cv)
-  const messages = await convertToModelMessages<CvUIMessage>(trimHistory(request.messages), {
+  const tools = chatTools(cv)
+  const history = trimHistory(request.messages)
+  const messages = await convertToModelMessages<CvUIMessage>(history, {
     tools,
     ignoreIncompleteToolCalls: true,
-    convertDataPart,
+    convertDataPart: dataPartConverter(history),
   })
 
   const result = streamText({
@@ -77,7 +97,7 @@ export async function handleChat(ctx: ChatContext): Promise<Response> {
     messages,
     tools,
     stopWhen: isStepCount(MAX_STEPS),
-    maxOutputTokens: MAX_OUTPUT_TOKENS,
+    maxOutputTokens: scenario.maxOutputTokens,
     onFinish: async ({ steps, totalUsage }) => {
       const cost = answerCost(steps)
       console.info('[chat] usage', JSON.stringify({
@@ -86,6 +106,7 @@ export async function handleChat(ctx: ChatContext): Promise<Response> {
         reasoning: totalUsage.outputTokenDetails?.reasoningTokens,
         cost,
         steps: steps.length,
+        scenario: request.scenario,
       }))
       await ctx.limiter.record(ctx.ip, cost)
     },

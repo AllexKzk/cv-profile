@@ -39,8 +39,8 @@
 | F1 | **Чат-оболочка** | Типы сообщений и реестр блоков, список сообщений, поле ввода (скрепка — пока только UI), welcome-экран, быстрые кнопки, «Новый чат», история в localStorage, InfoDialog «О проекте», инфраструктура компонентных тестов | 1.2 | done |
 | F2 | **Резюме в чате** | Компоненты Hero / About / Experience / Education / Skills / DownloadCard, сценарии «Показать резюме» и «Скачать резюме» без LLM | F1 | done |
 | F3 | **AI: свободный чат** | `/api/chat` на OpenRouter со стримингом, системный промпт с резюме, Markdown, stop / ошибки / повтор, лимиты (IP, дневной, размер), tool `showCvSection` | F2 | done |
-| F4 | **Интервью «Кого вы ищете?» + заявки** | Дизайн слотов брифа (в спеке), клиентский tool `askQuestion` с виджетами, `submitBrief` + BriefCard, `/api/lead` → Telegram, форма заявки | F3 | review |
-| F5 | **Загрузка и анализ вакансии** | `/api/parse-vacancy` (pdf, docx, md, txt), UI загрузки (скрепка, drag & drop, вставка текста), `analyzeVacancy` со structured output, `match-score` с тестами | F3 | |
+| F4 | **Интервью «Кого вы ищете?» + заявки** | Дизайн слотов брифа (в спеке), клиентский tool `askQuestion` с виджетами, `submitBrief` + BriefCard, `/api/lead` → Telegram, форма заявки | F3 | done |
+| F5 | **Загрузка и анализ вакансии** | `/api/parse-vacancy` (pdf, docx, md, txt), UI загрузки (скрепка, drag & drop, вставка текста), `analyzeVacancy` со structured output, `match-score` с тестами | F3 | done |
 | F6 | **Уточнения и отчёт о совместимости** | Дизайн отчёта (в спеке), клиентский tool `askRequirementPriority`, `showMatchReport` + MatchReport, CTA заявки | F4, F5 | |
 | V1 | **Живой фон и blur-блоки** | WebGL-фон «волнующееся поле точек» за чатом (низкая непрозрачность, инверсия по теме, reduced motion, бюджет fps/DPR), полупрозрачные поверхности с `backdrop-blur` | F3 | review |
 | F7 | **SEO, аналитика, качество** | Страница `/cv`, meta / OG / JSON-LD / sitemap, Vercel Analytics, Playwright smoke, эвал на фикстурах вакансий, a11y-полировка | F6 | |
