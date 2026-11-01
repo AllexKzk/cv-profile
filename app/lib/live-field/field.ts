@@ -12,8 +12,8 @@ export const FIELD = {
   // the CPU fallback draws its single frame even coarser
   renderScale: 0.5,
   fallbackScale: 0.25,
-  // Animation speed multiplier for the light time
-  speed: 1,
+  // Animation speed multiplier for the light time: at 3 a blob loops its path in ~16–35 s
+  speed: 3,
   // Light time of the static frame (reduced motion, no WebGL)
   staticTime: 40,
 } as const
