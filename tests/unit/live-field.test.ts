@@ -101,7 +101,7 @@ describe('fieldGlsl', () => {
   it('defines the shader functions from the same constants', () => {
     const glsl = fieldGlsl()
     for (const name of ['float lightAt(', 'float hash(', 'float ribShade(', 'float flutedAt(']) expect(glsl).toContain(name)
-    expect(glsl.match(/l \+= /g)).toHaveLength(3)
+    expect(glsl.match(/l \+= /g)).toHaveLength(4)
     expect(glsl).toContain(`${FIELD.ribPx}.0`)
   })
 

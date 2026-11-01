@@ -19,24 +19,57 @@ export const FIELD = {
   staticTime: 40,
 } as const
 
-// Each light blob: center (x, y as viewport fractions), drift amplitude (x, y), drift speed
-// (x, y, rad/s), phase, radius (viewport heights), intensity
-const BLOBS: ReadonlyArray<readonly [number, number, number, number, number, number, number, number, number]> = [
-  [0.35, 0.55, 0.25, 0.18, 0.11, 0.07, 0, 0.26, 0.95],
-  [0.85, 0.3, 0.3, 0.15, 0.08, 0.13, 2.1, 0.22, 0.8],
-  [0.15, 0.95, 0.2, 0.12, 0.09, 0.06, 4.2, 0.2, 0.85],
+interface Blob {
+  // Center as viewport fractions and how far it drifts from there (Lissajous path)
+  x: number
+  y: number
+  driftX: number
+  driftY: number
+  driftSpeedX: number
+  driftSpeedY: number
+  phase: number
+  // Radius across the long axis (viewport heights), how much longer it is along it,
+  // starting angle and turning speed
+  radius: number
+  stretch: number
+  angle: number
+  turnSpeed: number
+  // Peak brightness and how fast the blob "breathes" (radius and brightness swell and fade)
+  intensity: number
+  breathSpeed: number
+}
+
+// Speeds are per unit of light time (FIELD.speed units per second)
+const BLOBS: readonly Blob[] = [
+  { x: 0.3, y: 0.55, driftX: 0.25, driftY: 0.18, driftSpeedX: 0.11, driftSpeedY: 0.07, phase: 0, radius: 0.16, stretch: 3.2, angle: 0.9, turnSpeed: 0.03, intensity: 0.95, breathSpeed: 0.09 },
+  { x: 0.8, y: 0.3, driftX: 0.3, driftY: 0.15, driftSpeedX: 0.08, driftSpeedY: 0.13, phase: 2.1, radius: 0.13, stretch: 2.4, angle: -0.6, turnSpeed: -0.04, intensity: 0.8, breathSpeed: 0.12 },
+  { x: 0.15, y: 0.95, driftX: 0.2, driftY: 0.12, driftSpeedX: 0.09, driftSpeedY: 0.06, phase: 4.2, radius: 0.12, stretch: 3.8, angle: 0.3, turnSpeed: 0.025, intensity: 0.85, breathSpeed: 0.07 },
+  { x: 0.6, y: 0.8, driftX: 0.35, driftY: 0.2, driftSpeedX: 0.05, driftSpeedY: 0.1, phase: 5.3, radius: 0.1, stretch: 2, angle: 1.8, turnSpeed: -0.02, intensity: 0.6, breathSpeed: 0.1 },
 ]
 
 /**
- * Brightness (0–1) of the light behind the glass at viewport fractions (nx, ny): a few soft
- * blobs drifting on slow Lissajous paths. `aspect` keeps them round on any screen.
+ * Brightness (0–1) of the light behind the glass at viewport fractions (nx, ny). The light is a
+ * few long soft streaks: each drifts, slowly turns and breathes, and the space they live in
+ * flows (domain warp), so their outlines bend, merge and split instead of reading as circles.
+ * `aspect` keeps shapes undistorted on any screen.
  */
 export function lightAt(nx: number, ny: number, aspect: number, t: number): number {
+  let qx = nx * aspect
+  let qy = ny
+  const wx = 0.09 * Math.sin(qy * 4.3 + t * 0.07) + 0.04 * Math.sin(qy * 9.7 - t * 0.11)
+  const wy = 0.09 * Math.sin(qx * 3.7 - t * 0.06) + 0.04 * Math.sin(qx * 8.9 + t * 0.09)
+  qx += wx
+  qy += wy
   let l = 0
-  for (const [cx, cy, ax, ay, sx, sy, phase, r, k] of BLOBS) {
-    const dx = (nx - cx - ax * Math.sin(t * sx + phase)) * aspect
-    const dy = ny - cy - ay * Math.cos(t * sy + phase)
-    l += k * Math.exp(-(dx * dx + dy * dy) / (r * r))
+  for (const b of BLOBS) {
+    const breath = Math.sin(t * b.breathSpeed + b.phase)
+    const r = b.radius * (1 + 0.3 * breath)
+    const dx = qx - (b.x + b.driftX * Math.sin(t * b.driftSpeedX + b.phase)) * aspect
+    const dy = qy - (b.y + b.driftY * Math.cos(t * b.driftSpeedY + b.phase))
+    const a = b.angle + t * b.turnSpeed
+    const along = (dx * Math.cos(a) + dy * Math.sin(a)) / (r * b.stretch)
+    const across = (-dx * Math.sin(a) + dy * Math.cos(a)) / r
+    l += b.intensity * (0.75 + 0.25 * breath) * Math.exp(-(along * along + across * across))
   }
   return Math.min(l, 1)
 }
@@ -95,13 +128,24 @@ export function flutedAt(x: number, y: number, w: number, h: number, t: number):
 
 /** GLSL source of the same functions, generated from FIELD and BLOBS so the two never drift. */
 export function fieldGlsl(): string {
-  const blobs = BLOBS.map(([cx, cy, ax, ay, sx, sy, phase, r, k]) => `
-  d = vec2((n.x - ${f(cx)} - ${f(ax)} * sin(t * ${f(sx)} + ${f(phase)})) * aspect,
-           n.y - ${f(cy)} - ${f(ay)} * cos(t * ${f(sy)} + ${f(phase)}));
-  l += ${f(k)} * exp(-dot(d, d) / ${f(r * r)});`).join('')
+  const blobs = BLOBS.map(b => `
+  breath = sin(t * ${f(b.breathSpeed)} + ${f(b.phase)});
+  r = ${f(b.radius)} * (1.0 + 0.3 * breath);
+  d = q - vec2((${f(b.x)} + ${f(b.driftX)} * sin(t * ${f(b.driftSpeedX)} + ${f(b.phase)})) * aspect,
+               ${f(b.y)} + ${f(b.driftY)} * cos(t * ${f(b.driftSpeedY)} + ${f(b.phase)}));
+  a = ${f(b.angle)} + t * ${f(b.turnSpeed)};
+  e = vec2((d.x * cos(a) + d.y * sin(a)) / (r * ${f(b.stretch)}), (-d.x * sin(a) + d.y * cos(a)) / r);
+  l += ${f(b.intensity)} * (0.75 + 0.25 * breath) * exp(-dot(e, e));`).join('')
   return `float lightAt(vec2 n, float aspect, float t) {
+  vec2 q = vec2(n.x * aspect, n.y);
+  q += vec2(0.09 * sin(q.y * 4.3 + t * 0.07) + 0.04 * sin(q.y * 9.7 - t * 0.11),
+            0.09 * sin(q.x * 3.7 - t * 0.06) + 0.04 * sin(q.x * 8.9 + t * 0.09));
   float l = 0.0;
-  vec2 d;${blobs}
+  float breath;
+  float r;
+  float a;
+  vec2 d;
+  vec2 e;${blobs}
   return min(l, 1.0);
 }
 

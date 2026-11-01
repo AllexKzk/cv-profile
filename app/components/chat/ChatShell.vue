@@ -75,17 +75,8 @@ function send(text: string) {
   @apply animate-in fade-in slide-in-from-bottom-2 duration-300;
 }
 
+/* No backdrop: the live background runs full screen under the composer */
 .composer {
   @apply sticky bottom-0 z-10 flex shrink-0 flex-col gap-2 pb-4;
-}
-
-/* A blurred bar across the whole viewport, like the TopBar. Its top edge fades out, so messages
-   blur gradually as they go under the composer instead of being cut by a hard edge. */
-.composer::before {
-  @apply pointer-events-none absolute -top-6 bottom-0 -z-10 surface-bar;
-  mask-image: linear-gradient(to bottom, transparent, black 1.5rem);
-  left: calc(50% - 50vw);
-  right: calc(50% - 50vw);
-  content: '';
 }
 </style>

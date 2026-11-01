@@ -130,10 +130,6 @@
   @apply bg-card/90 sm:bg-card/70 sm:backdrop-blur-md;
 }
 
-/* Sticky bars (TopBar, composer): small area, always on screen, blurred everywhere */
-@utility surface-bar {
-  @apply bg-background/70 backdrop-blur-md;
-}
 
 @layer base {
   * {
