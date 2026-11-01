@@ -43,63 +43,58 @@ function onEnter(event: KeyboardEvent) {
     class="input"
     @submit.prevent="submit"
   >
+    <Tooltip>
+      <TooltipTrigger as-child>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          :aria-label="$t('chat.input.attach')"
+          @click="emit('attach')"
+        >
+          <Paperclip />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>{{ $t('chat.input.attach') }}</TooltipContent>
+    </Tooltip>
     <Textarea
       ref="field"
       v-model="text"
       rows="1"
       :maxlength="CHAT_LIMITS.messageChars"
-      class="max-h-52 min-h-0 resize-none border-0 bg-transparent px-1 shadow-none field-sizing-fixed focus-visible:ring-0 dark:bg-transparent"
+      class="max-h-52 min-h-9 min-w-0 flex-1 resize-none placeholder:truncate border-0 bg-transparent px-1 py-2 shadow-none field-sizing-fixed focus-visible:ring-0 dark:bg-transparent"
       :placeholder="$t('chat.input.placeholder')"
       :aria-label="$t('chat.input.placeholder')"
       @keydown.enter="onEnter"
     />
-    <div class="toolbar">
-      <Tooltip>
-        <TooltipTrigger as-child>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            :aria-label="$t('chat.input.attach')"
-            @click="emit('attach')"
-          >
-            <Paperclip />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>{{ $t('chat.input.attach') }}</TooltipContent>
-      </Tooltip>
-      <Button
-        v-if="busy"
-        type="button"
-        size="icon"
-        class="stop"
-        :aria-label="$t('chat.input.stop')"
-        @click="emit('stop')"
-      >
-        <Square class="fill-current" />
-      </Button>
-      <Button
-        v-else
-        type="submit"
-        size="icon"
-        :disabled="!canSend"
-        :aria-label="$t('chat.input.send')"
-      >
-        <ArrowUp />
-      </Button>
-    </div>
+    <Button
+      v-if="busy"
+      type="button"
+      size="icon"
+      class="stop"
+      :aria-label="$t('chat.input.stop')"
+      @click="emit('stop')"
+    >
+      <Square class="fill-current" />
+    </Button>
+    <Button
+      v-else
+      type="submit"
+      size="icon"
+      :disabled="!canSend"
+      :aria-label="$t('chat.input.send')"
+    >
+      <ArrowUp />
+    </Button>
   </form>
 </template>
 
 <style scoped>
 @reference "~/assets/css/main.css";
 
+/* One row: attach, the field, send. The field grows upwards, the buttons stay on its last line */
 .input {
-  @apply flex flex-col gap-1 rounded-2xl border border-input bg-background p-2 shadow-xs;
+  @apply flex items-end gap-1 rounded-2xl border border-input bg-background p-1.5 shadow-xs;
   @apply focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50;
-}
-
-.toolbar {
-  @apply flex items-center justify-between;
 }
 </style>
