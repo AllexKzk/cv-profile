@@ -12,8 +12,7 @@ import type { FieldController } from '~/lib/live-field/renderer'
 // Decorative light behind fluted glass, full screen behind the page. The server renders an empty
 // canvas; the renderer is a separate chunk loaded when the browser is idle after hydration.
 // Desktop: the light drifts on its own. Phones: it stands still and follows the tilt.
-// Presses on buttons and fields send a ring across the glass on both. Blocks marked
-// `data-glass` are liquid glass: the shader bends the picture near their edges.
+// Presses on buttons and fields send a ring across the glass on both.
 const canvas = useTemplateRef('canvas')
 const ready = ref(false)
 const reducedMotion = usePreferredReducedMotion()
@@ -38,7 +37,6 @@ async function init() {
     })
     field.setVisible(visibility.value === 'visible')
     field.setAutonomous(!touch.value)
-    updateGlass()
   }
   catch (error) {
     // A broken background must never break the page
@@ -98,40 +96,6 @@ useEventListener(() => (import.meta.client ? document : null), 'keydown', (event
   const box = target.getBoundingClientRect()
   field?.ripple(box.left + box.width / 2, box.top + box.height / 2)
 }, { capture: true, passive: true })
-
-// Glass blocks: their rects feed the shader. Read synchronously on scroll and resize, so the
-// bent edges move in the same frame as the blocks; DOM changes are batched to a frame
-function updateGlass() {
-  if (!field) return
-  const height = window.innerHeight
-  const rects = []
-  for (const element of document.querySelectorAll('[data-glass]')) {
-    const box = element.getBoundingClientRect()
-    if (box.width > 0 && box.bottom > -40 && box.top < height + 40) {
-      rects.push({ x: box.left, y: box.top, w: box.width, h: box.height })
-    }
-  }
-  field.setGlass(rects)
-}
-
-let glassFrame = 0
-function scheduleGlass() {
-  if (glassFrame) return
-  glassFrame = requestAnimationFrame(() => {
-    glassFrame = 0
-    updateGlass()
-  })
-}
-
-useEventListener(() => (import.meta.client ? window : null), 'scroll', updateGlass, { passive: true })
-useEventListener(() => (import.meta.client ? window : null), 'resize', updateGlass, { passive: true })
-// Messages slide in with CSS animations: re-read the rects when they settle
-useEventListener(() => (import.meta.client ? document : null), 'animationend', scheduleGlass, { passive: true })
-useMutationObserver(
-  () => (import.meta.client ? document.body : null),
-  scheduleGlass,
-  { childList: true, subtree: true },
-)
 
 // color-mode toggles the theme class on <html>: re-read the token after it lands
 useMutationObserver(

@@ -2,7 +2,7 @@
 // single coarse Canvas 2D frame when WebGL is unavailable. Loaded lazily (dynamic import)
 // after hydration.
 import { FIELD, createFrameGate, fieldGlsl, flutedAt, mixRgb } from './field'
-import type { GlassRect, Rgb } from './field'
+import type { Rgb } from './field'
 
 export interface FieldController {
   /** Allow motion (false: one static frame, no tilt or ripples; reduced motion). */
@@ -13,8 +13,6 @@ export interface FieldController {
   setTilt: (x: number, y: number) => void
   /** Send a ring across the glass from a point in CSS px. */
   ripple: (x: number, y: number) => void
-  /** Glass blocks on screen (viewport CSS px); their edges bend the picture. */
-  setGlass: (rects: readonly GlassRect[]) => void
   /** Pause the loop while the tab is hidden. */
   setVisible: (visible: boolean) => void
   /** New light color; animated fields blend into it, static ones redraw at once. */
@@ -82,16 +80,13 @@ uniform float uTime;
 uniform vec3 uColor;
 uniform vec2 uOffset;
 uniform vec4 uRipples[${FIELD.ripple.max}];
-uniform vec4 uGlass[${FIELD.glass.max}];
 
 ${fieldGlsl()}
 
 void main() {
   // CSS px with y down, like the TS copy in field.ts
   vec2 p = vec2(gl_FragCoord.x, uSize.y * uScale - gl_FragCoord.y) / uScale;
-  // Glass blocks in front bend the whole ribbed picture near their edges and light their rims
-  vec3 g = glass(p);
-  float a = min(flutedAt(p + g.xy, uSize, uTime, uOffset) + g.z * ${FIELD.glass.highlight.toFixed(3)}, 1.0);
+  float a = flutedAt(p, uSize, uTime, uOffset);
   // The canvas is premultiplied: the page background shows through
   gl_FragColor = vec4(uColor * a, a);
 }
@@ -111,9 +106,6 @@ function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, option
   let lightTime = FIELD.staticTime
   const tilt = { x: 0, y: 0, targetX: 0, targetY: 0 }
   let ripples: Array<{ x: number, y: number, start: number }> = []
-  const glass = new Float32Array(FIELD.glass.max * 4)
-  // One more frame is needed (the glass blocks moved) even if nothing animates
-  let dirty = false
   let lastNow = 0
   let frame = 0
   let lost = false
@@ -155,7 +147,6 @@ function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, option
       color: loc('uColor'),
       offset: loc('uOffset'),
       ripples: loc('uRipples'),
-      glass: loc('uGlass'),
     }
   }
 
@@ -183,7 +174,6 @@ function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, option
     gl.uniform1f(uniforms.time, lightTime + (tiltX + tiltY) * FIELD.tilt.time)
     gl.uniform2f(uniforms.offset, tiltX * FIELD.tilt.offset, tiltY * FIELD.tilt.offset)
     gl.uniform4fv(uniforms.ripples, packed)
-    gl.uniform4fv(uniforms.glass, glass)
     gl.uniform3f(uniforms.color, color[0], color[1], color[2])
     gl.drawArrays(gl.TRIANGLES, 0, 3)
     if (!ready) {
@@ -194,7 +184,7 @@ function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, option
 
   // Something is still moving: the drift, the tilt easing, a ring or a color blend
   function busy(): boolean {
-    if (fadeStart || dirty) return true
+    if (fadeStart) return true
     if (!animated) return false
     return autonomous
       || ripples.length > 0
@@ -204,8 +194,7 @@ function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, option
 
   function tick(now: number) {
     frame = requestAnimationFrame(tick)
-    // Glass blocks moved (scroll): draw this frame so their edges stay glued to them
-    if (!gate(now) && !dirty) return
+    if (!gate(now)) return
     const step = lastNow ? Math.min(now - lastNow, MAX_STEP_MS) : 0
     lastNow = now
     if (animated && autonomous) lightTime += (step / 1000) * FIELD.speed
@@ -220,7 +209,6 @@ function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, option
       if (t >= 1) fadeStart = 0
     }
     draw(now)
-    dirty = false
     if (!busy()) stop()
   }
 
@@ -289,12 +277,6 @@ function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, option
       ripples.push({ x, y, start: performance.now() })
       sync()
     },
-    setGlass(rects) {
-      glass.fill(0)
-      rects.slice(0, FIELD.glass.max).forEach((r, k) => glass.set([r.x, r.y, r.w, r.h], k * 4))
-      dirty = true
-      sync()
-    },
     setVisible(value) {
       visible = value
       sync()
@@ -358,7 +340,6 @@ function startCanvas2d(canvas: HTMLCanvasElement, options: FieldOptions): FieldC
     setAutonomous() {},
     setTilt() {},
     ripple() {},
-    setGlass() {},
     setVisible() {},
     setColor(value) {
       color = value

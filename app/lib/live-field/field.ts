@@ -22,64 +22,7 @@ export const FIELD = {
   tilt: { offset: 0.12, rangeDeg: 30, time: 6 },
   // A press sends a ring across the glass: it pushes the light outwards and brightens the ribs
   ripple: { max: 4, speedPx: 650, widthPx: 60, lifeS: 1.4, pushPx: 45, glow: 0.85 },
-  // Liquid glass blocks over the field: near their edges the picture bends like a thick lens
-  // bevel (`bevelPx` wide, shifted up to `pullPx`), inside it is slightly magnified, and the
-  // rim catches a highlight from the top left. `radiusPx` matches the blocks' rounded-xl
-  glass: { max: 8, radiusPx: 14, bevelPx: 28, pullPx: 36, magnify: 0.04, rimPx: 2.5, highlight: 0.9 },
 } as const
-
-/** A glass block on screen, CSS px from the viewport top left. */
-export interface GlassRect {
-  x: number
-  y: number
-  w: number
-  h: number
-}
-
-/** Signed distance from (px, py) to a rounded rectangle: negative inside. */
-export function roundedBoxSdf(px: number, py: number, rect: GlassRect, radius: number): number {
-  const r = Math.min(radius, rect.w / 2, rect.h / 2)
-  const qx = Math.abs(px - (rect.x + rect.w / 2)) - (rect.w / 2 - r)
-  const qy = Math.abs(py - (rect.y + rect.h / 2)) - (rect.h / 2 - r)
-  return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - r
-}
-
-/**
- * Effect of the glass blocks at screen point (x, y): where to sample the picture instead
- * (dx, dy, CSS px) and how bright the rim is there. Same math as `glass()` in the shader.
- */
-export function glassAt(x: number, y: number, rects: readonly GlassRect[]): [number, number, number] {
-  const { radiusPx, bevelPx, pullPx, magnify, rimPx } = FIELD.glass
-  let dx = 0
-  let dy = 0
-  let rim = 0
-  for (const rect of rects) {
-    const d = roundedBoxSdf(x, y, rect, radiusPx)
-    // Slight magnification over the whole block
-    if (d < 0) {
-      dx -= (x - rect.x - rect.w / 2) * magnify
-      dy -= (y - rect.y - rect.h / 2) * magnify
-    }
-    // Bevel and rim only near the edge: deeper inside the normal is undefined on the center line
-    if (Math.abs(d) >= bevelPx) continue
-    // Outward normal from the distance gradient
-    const gx = roundedBoxSdf(x + 1, y, rect, radiusPx) - roundedBoxSdf(x - 1, y, rect, radiusPx)
-    const gy = roundedBoxSdf(x, y + 1, rect, radiusPx) - roundedBoxSdf(x, y - 1, rect, radiusPx)
-    const len = Math.max(Math.hypot(gx, gy), 0.001)
-    const nx = gx / len
-    const ny = gy / len
-    if (d < 0) {
-      // Bevel: the closer to the edge, the further out the picture is pulled from
-      const t = 1 + d / bevelPx
-      dx += nx * t * t * pullPx
-      dy += ny * t * t * pullPx
-    }
-    // A thin rim lit from the top left, a bit on the far edges too
-    const lit = 0.35 + 0.65 * Math.max(0, -(nx * 0.45 + ny * 0.9))
-    rim += Math.exp(-((d / rimPx) ** 2)) * lit
-  }
-  return [dx, dy, rim]
-}
 
 /** A ring from a press: center in CSS px, age in seconds. */
 export interface Ripple {
@@ -262,41 +205,6 @@ float ribShade(float u, float glint, float rim) {
   float gl = (u - 0.06) / 0.035;
   float gr = (u - 0.93) / 0.03;
   return (body + glint * exp(-gl * gl) + rim * exp(-gr * gr)) * smoothstep(0.0, 0.03, u);
-}
-
-float boxSdf(vec2 p, vec4 rect) {
-  float r = min(${f(FIELD.glass.radiusPx)}, min(rect.z, rect.w) * 0.5);
-  vec2 q = abs(p - (rect.xy + rect.zw * 0.5)) - (rect.zw * 0.5 - r);
-  return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
-}
-
-// Glass blocks: x, y, width, height (CSS px); zero width means unused. Declared by the renderer
-vec3 glass(vec2 p) {
-  vec3 g = vec3(0.0);
-  for (int k = 0; k < ${FIELD.glass.max}; k++) {
-    vec4 rect = uGlass[k];
-    if (rect.z > 0.0) {
-      float d = boxSdf(p, rect);
-      // Slight magnification over the whole block
-      if (d < 0.0) g.xy -= (p - rect.xy - rect.zw * 0.5) * ${f(FIELD.glass.magnify)};
-      // Bevel and rim only near the edge: deeper inside the normal is undefined on the
-      // block's center line and would turn into NaN
-      if (abs(d) < ${f(FIELD.glass.bevelPx)}) {
-        vec2 grad = vec2(
-          boxSdf(p + vec2(1.0, 0.0), rect) - boxSdf(p - vec2(1.0, 0.0), rect),
-          boxSdf(p + vec2(0.0, 1.0), rect) - boxSdf(p - vec2(0.0, 1.0), rect));
-        vec2 n = grad / max(length(grad), 0.001);
-        if (d < 0.0) {
-          float t = 1.0 + d / ${f(FIELD.glass.bevelPx)};
-          g.xy += n * t * t * ${f(FIELD.glass.pullPx)};
-        }
-        float lit = 0.35 + 0.65 * max(0.0, -(n.x * 0.45 + n.y * 0.9));
-        float e = d / ${f(FIELD.glass.rimPx)};
-        g.z += exp(-e * e) * lit;
-      }
-    }
-  }
-  return g;
 }
 
 // Rings from presses: x, y (CSS px), age (s), active flag. Declared by the renderer
