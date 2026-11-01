@@ -82,6 +82,7 @@ export const ru = {
     backend: 'Backend',
     ai: 'AI',
   },
-  // TODO(owner): not in the CV yet
-  languages: [],
+  languages: [
+    { name: 'Английский', level: 'B2 (выше среднего)' },
+  ],
 } satisfies CvTextsInput
