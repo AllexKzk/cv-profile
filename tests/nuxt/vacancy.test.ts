@@ -4,8 +4,6 @@ import type { UIMessageChunk } from 'ai'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import ChatInput from '~/components/chat/ChatInput.vue'
 import ChatShell from '~/components/chat/ChatShell.vue'
-import VacancyMatchBlock from '~/components/blocks/VacancyMatchBlock.vue'
-import type { CvToolPart } from '#shared/types/chat'
 import { mountInApp } from './helpers'
 
 const VACANCY = 'Senior Frontend Engineer. Requirements: Vue 3, TypeScript, Nuxt, five years of experience. '.repeat(4)
@@ -161,40 +159,5 @@ describe('ChatInput', () => {
 
     await wrapper.find('textarea').trigger('paste', { clipboardData: { getData: () => 'short' } })
     expect(input.emitted('pasteLong')).toHaveLength(1)
-  })
-})
-
-describe('VacancyMatchBlock', () => {
-  const output = {
-    title: 'Senior Frontend Engineer',
-    company: 'Acme',
-    requirements: [
-      { name: 'Vue 3', category: 'stack' as const, importance: 'must' as const, status: 'match' as const, evidence: 'Vue in two jobs' },
-      { name: 'Go', category: 'stack' as const, importance: 'must' as const, status: 'missing' as const, evidence: '' },
-      { name: 'Travel', category: 'format' as const, importance: 'nice' as const, status: 'unknown' as const, evidence: '' },
-    ],
-    score: {
-      percent: 50,
-      level: 'partial' as const,
-      counts: { match: 1, partial: 0, missing: 1, unknown: 1 },
-      mustMissing: ['Go'],
-      byCategory: [],
-    },
-  }
-
-  it('shows a placeholder while the analysis streams in', async () => {
-    const part = { type: 'tool-analyzeVacancy', toolCallId: 'c', state: 'input-streaming', input: undefined } as CvToolPart<'analyzeVacancy'>
-    const wrapper = await mountInApp(VacancyMatchBlock, { part })
-    expect(wrapper.text()).toContain('Analyzing the vacancy')
-  })
-
-  it('shows the score, counters, gaps and requirements with evidence', async () => {
-    const part = { type: 'tool-analyzeVacancy', toolCallId: 'c', state: 'output-available', input: output, output } as CvToolPart<'analyzeVacancy'>
-    const wrapper = await mountInApp(VacancyMatchBlock, { part })
-    expect(wrapper.find('.percent').text()).toBe('50%')
-    expect(wrapper.find('.level').text()).toBe('Partial match')
-    expect(wrapper.find('.gaps').text()).toBe('Missing must-haves: Go')
-    expect(wrapper.findAll('.requirement').map(r => r.find('.name').text())).toEqual(['Vue 3 must', 'Go must', 'Travel nice'])
-    expect(wrapper.find('.requirement.match .evidence').text()).toBe('Vue in two jobs')
   })
 })

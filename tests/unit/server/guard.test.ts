@@ -42,6 +42,8 @@ describe('parseChatRequest', () => {
     ['match with the vacancy only in history', requestBody([vacancyMessage('u0'), answer('a0'), userMessage('Hi')], { scenario: 'match' })],
     ['two vacancies in one message', requestBody([{ ...vacancyMessage(), parts: [...vacancyMessage().parts, ...vacancyMessage().parts] }])],
     ['a vacancy from the assistant', requestBody([{ ...vacancyMessage('a0'), role: 'assistant' }, userMessage('Hi')])],
+    ['clarifications in a user message', requestBody([{ ...userMessage('Hi'), parts: [{ type: 'data-priorities', data: { source: 'c', values: { Go: 'none' } } }] } as CvUIMessage])],
+    ['too many clarifications', requestBody([userMessage('Hi', 'u0'), { id: 'a0', role: 'assistant', parts: [{ type: 'data-priorities', data: { source: 'c', values: Object.fromEntries(['a', 'b', 'c', 'd', 'e', 'f'].map(n => [n, 'none'])) } }] } as CvUIMessage, userMessage('And?')])],
     ['too long vacancy', requestBody([vacancyMessage('u1', 'x'.repeat(20_001))], { scenario: 'match' })],
     ['empty body', undefined],
     ['broken JSON', '{'],

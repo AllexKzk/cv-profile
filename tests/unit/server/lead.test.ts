@@ -7,6 +7,7 @@ import { escapeHtml, formatLead } from '../../../server/utils/telegram'
 import type { LeadRequest } from '../../../shared/lead'
 
 const lead: LeadRequest = {
+  kind: 'brief',
   contact: '@recruiter',
   name: 'Anna',
   company: 'Acme <script>',
@@ -14,6 +15,22 @@ const lead: LeadRequest = {
   brief: { role: 'Frontend', seniority: 'Senior', mustHave: ['Vue', 'Go'], format: ['remote'], salary: { min: 200000, max: 300000, currency: 'RUB', period: 'month' } },
   fit: { mustHave: [{ name: 'Vue', inCv: true }, { name: 'Go', inCv: false }], niceToHave: [], format: 'match' },
   locale: 'ru',
+}
+
+const report: LeadRequest = {
+  kind: 'report',
+  contact: '@recruiter',
+  title: 'Senior Frontend <Engineer>',
+  company: 'Acme',
+  requirements: [
+    { name: 'Vue 3', category: 'stack', importance: 'must', status: 'match' },
+    { name: 'Go', category: 'stack', importance: 'must', status: 'missing' },
+    { name: 'Kubernetes', category: 'stack', importance: 'must', status: 'partial' },
+    { name: 'Business travel', category: 'format', importance: 'must', status: 'unknown' },
+    { name: 'Fintech', category: 'domain', importance: 'nice', status: 'missing' },
+  ],
+  priorities: { 'Go': 'none', 'Vue 3': 'none' },
+  locale: 'en',
 }
 
 function telegram(status = 200) {
@@ -69,6 +86,11 @@ describe('handleLead', () => {
     ['no contact', { ...lead, contact: '' }],
     ['unknown field', { ...lead, chat_id: '1' }],
     ['too long comment', { ...lead, comment: 'x'.repeat(1001) }],
+    ['no kind', { ...lead, kind: undefined }],
+    ['a report with a brief', { ...report, brief: lead.brief }],
+    ['a report with a percentage', { ...report, percent: 100 }],
+    ['a report with evidence', { ...report, requirements: [{ ...report.requirements[0], evidence: 'x' }] }],
+    ['a report with 26 requirements', { ...report, requirements: Array.from({ length: 26 }, (_, i) => ({ ...report.requirements[0], name: `R${i}` })) }],
   ])('rejects %s', async (_, body) => {
     const response = await handleLead(context({ body: JSON.stringify(body) }))
     expect(response.status).toBe(400)
@@ -108,6 +130,28 @@ describe('formatLead', () => {
     expect(text).toContain('Vue ✅, Go ❌ (1/2 в резюме)')
     expect(text).toContain('remote (подходит)')
     expect(text).toContain('RUB / мес')
+  })
+
+  it('recomputes the report score with the clarifications and lists the gaps', () => {
+    const text = formatLead(report)
+    expect(text).toContain('<b>Отчёт по вакансии</b>')
+    expect(text).toContain('Senior Frontend &lt;Engineer&gt;')
+    // Go is not important; Vue 3 was not a clarification, so its answer is ignored:
+    // Vue 3 (3·1) + Kubernetes (3·0.5) + Fintech (1·0) out of 7 → 64%
+    expect(text).toContain('Совпадение: 64% (хорошее совпадение)')
+    expect(text).toContain('Уточнения рекрутера: Go → не важно')
+    expect(text).not.toContain('Vue 3 → ')
+    expect(text).not.toContain('Нет must-have')
+    expect(text).toContain('⚠️ Частично must-have: Kubernetes')
+    expect(text).toContain('❔ Нет данных в резюме: Business travel')
+    expect(text).toContain('Язык сайта: en')
+  })
+
+  it('sends a report lead', async () => {
+    const fetch = telegram()
+    const response = await handleLead(context({ body: JSON.stringify(report), fetch: fetch as never }))
+    expect(response.status).toBe(200)
+    expect(JSON.parse(fetch.mock.calls[0]![1]!.body as string).text).toContain('Отчёт по вакансии')
   })
 
   it('escapeHtml', () => {

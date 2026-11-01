@@ -41,7 +41,7 @@
 | F3 | **AI: свободный чат** | `/api/chat` на OpenRouter со стримингом, системный промпт с резюме, Markdown, stop / ошибки / повтор, лимиты (IP, дневной, размер), tool `showCvSection` | F2 | done |
 | F4 | **Интервью «Кого вы ищете?» + заявки** | Дизайн слотов брифа (в спеке), клиентский tool `askQuestion` с виджетами, `submitBrief` + BriefCard, `/api/lead` → Telegram, форма заявки | F3 | done |
 | F5 | **Загрузка и анализ вакансии** | `/api/parse-vacancy` (pdf, docx, md, txt), UI загрузки (скрепка, drag & drop, вставка текста), `analyzeVacancy` со structured output, `match-score` с тестами | F3 | done |
-| F6 | **Уточнения и отчёт о совместимости** | Дизайн отчёта (в спеке), клиентский tool `askRequirementPriority`, `showMatchReport` + MatchReport, CTA заявки | F4, F5 | |
+| F6 | **Уточнения и отчёт о совместимости** | Дизайн отчёта (в спеке), MatchReport, уточнения критичности с пересчётом без LLM, CTA заявки | F4, F5 | review |
 | V1 | **Живой фон и blur-блоки** | WebGL-фон «волнующееся поле точек» за чатом (низкая непрозрачность, инверсия по теме, reduced motion, бюджет fps/DPR), полупрозрачные поверхности с `backdrop-blur` | F3 | review |
 | F7 | **SEO, аналитика, качество** | Страница `/cv`, meta / OG / JSON-LD / sitemap, Vercel Analytics, Playwright smoke, эвал на фикстурах вакансий, a11y-полировка | F6 | |
 | F8 | **Деплой и домен** | Проверка production и preview, секреты в Vercel, домен `allexkzk.dev` | F7 | |

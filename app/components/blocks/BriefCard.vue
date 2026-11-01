@@ -136,8 +136,7 @@ const matched = computed(() => result.value?.fit.mustHave.filter(skill => skill.
         <LeadDialog
           v-else
           :source="part.toolCallId"
-          :brief="result.brief"
-          :fit="result.fit"
+          :subject="{ kind: 'brief', brief: result.brief, fit: result.fit }"
         >
           <Button>
             <Send />

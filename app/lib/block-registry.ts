@@ -5,10 +5,10 @@ import CvDownloadBlock from '~/components/blocks/CvDownloadBlock.vue'
 import CvSectionBlock from '~/components/blocks/CvSectionBlock.vue'
 import LeadSentBlock from '~/components/blocks/LeadSentBlock.vue'
 import MarkdownBlock from '~/components/blocks/MarkdownBlock.vue'
+import MatchReport from '~/components/blocks/MatchReport.vue'
 import QuestionWidget from '~/components/blocks/QuestionWidget.vue'
 import TextBlock from '~/components/blocks/TextBlock.vue'
 import VacancyAttachmentBlock from '~/components/blocks/VacancyAttachmentBlock.vue'
-import VacancyMatchBlock from '~/components/blocks/VacancyMatchBlock.vue'
 
 type PartType = CvMessagePart['type']
 
@@ -22,12 +22,11 @@ export const blockRegistry: Partial<Record<PartType, Component>> = {
   'tool-askQuestion': QuestionWidget,
   'tool-submitBrief': BriefCard,
   'data-lead': LeadSentBlock,
-  // Interim result of F5; F6 puts MatchReport here
-  'tool-analyzeVacancy': VacancyMatchBlock,
+  'tool-analyzeVacancy': MatchReport,
 }
 
 // Service parts of AI SDK and markers that have nothing to show
-const SILENT_PARTS = new Set<string>(['step-start', 'reasoning', 'data-interview'])
+const SILENT_PARTS = new Set<string>(['step-start', 'reasoning', 'data-interview', 'data-priorities'])
 
 export function resolveBlock(type: string, role: CvUIMessage['role']): Component | undefined {
   // Assistant text is Markdown; what the user typed stays plain text

@@ -240,6 +240,33 @@ describe('handleChat', () => {
       await readAnswer(response)
       expect(JSON.stringify(model.doStreamCalls[0]!.prompt)).toContain('Go (must): missing')
     })
+
+    it('passes the visitor\'s clarifications as one line with the recomputed level', async () => {
+      const model = mockModel(textStep('Then he fits.'))
+      const body = requestBody([
+        vacancyMessage('u0'),
+        {
+          id: 'a0',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-analyzeVacancy',
+              toolCallId: 'c',
+              state: 'output-available',
+              input: analysis,
+              output: { ...analysis, score: { percent: 50, level: 'partial', counts: { match: 1, partial: 1, missing: 1, unknown: 0 }, mustMissing: ['Go'], byCategory: [] } },
+            },
+            { type: 'data-priorities', data: { source: 'c', values: { Go: 'none' } } },
+          ],
+        } as CvUIMessage,
+        userMessage('And without Go?'),
+      ])
+      await readAnswer(await handleChat(context({ model, body })))
+      const prompt = JSON.stringify(model.doStreamCalls[0]!.prompt)
+      // Vue (must, match) + Fintech (nice, partial): (3 + 0.5) / 4 = 88% → strong
+      expect(prompt).toContain('Go — not important. Updated level: strong')
+      expect(prompt).not.toContain('88')
+    })
   })
 })
 
