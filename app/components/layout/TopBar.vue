@@ -19,7 +19,8 @@
 @reference "~/assets/css/main.css";
 
 .topbar {
-  @apply sticky top-0 z-10 shrink-0 bg-background/80 backdrop-blur;
+  /* No backdrop: the live background runs full screen under the bar */
+  @apply sticky top-0 z-10 shrink-0;
 }
 
 .inner {

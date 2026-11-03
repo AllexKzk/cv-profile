@@ -1,5 +1,6 @@
 <template>
   <TooltipProvider :delay-duration="300">
+    <LayoutLiveBackground />
     <div class="shell">
       <LayoutTopBar />
       <main class="content">

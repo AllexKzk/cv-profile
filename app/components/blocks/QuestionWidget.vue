@@ -222,7 +222,7 @@ function done() {
 @reference "~/assets/css/main.css";
 
 .question {
-  @apply flex flex-col gap-3 rounded-xl border bg-card p-4 text-card-foreground;
+  @apply flex flex-col gap-3 rounded-xl border surface p-4 text-card-foreground;
 }
 
 .question.answered {

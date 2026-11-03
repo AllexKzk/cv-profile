@@ -70,18 +70,7 @@ function onEnter(event: KeyboardEvent) {
       removable
       @remove="emit('removeAttachment')"
     />
-    <Textarea
-      ref="field"
-      v-model="text"
-      rows="1"
-      :maxlength="CHAT_LIMITS.messageChars"
-      class="max-h-52 min-h-0 resize-none border-0 bg-transparent px-1 shadow-none field-sizing-fixed focus-visible:ring-0 dark:bg-transparent"
-      :placeholder="$t('chat.input.placeholder')"
-      :aria-label="$t('chat.input.placeholder')"
-      @keydown.enter="onEnter"
-      @paste="onPaste"
-    />
-    <div class="toolbar">
+    <div class="row">
       <Tooltip>
         <TooltipTrigger as-child>
           <Button
@@ -96,6 +85,17 @@ function onEnter(event: KeyboardEvent) {
         </TooltipTrigger>
         <TooltipContent>{{ $t('chat.input.attach') }}</TooltipContent>
       </Tooltip>
+      <Textarea
+        ref="field"
+        v-model="text"
+        rows="1"
+        :maxlength="CHAT_LIMITS.messageChars"
+        class="max-h-52 min-h-9 min-w-0 flex-1 resize-none placeholder:truncate border-0 bg-transparent px-1 py-2 shadow-none field-sizing-fixed focus-visible:ring-0 dark:bg-transparent"
+        :placeholder="$t('chat.input.placeholder')"
+        :aria-label="$t('chat.input.placeholder')"
+        @keydown.enter="onEnter"
+        @paste="onPaste"
+      />
       <Button
         v-if="busy"
         type="button"
@@ -122,12 +122,14 @@ function onEnter(event: KeyboardEvent) {
 <style scoped>
 @reference "~/assets/css/main.css";
 
+/* A pending attachment on top, then one row with the controls */
 .input {
-  @apply flex flex-col gap-1 rounded-2xl border border-input bg-background p-2 shadow-xs;
+  @apply flex flex-col gap-1 rounded-2xl border border-input bg-background p-1.5 shadow-xs;
   @apply focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50;
 }
 
-.toolbar {
-  @apply flex items-center justify-between;
+/* Attach, the field, send. The field grows upwards, the buttons stay on its last line */
+.row {
+  @apply flex items-end gap-1;
 }
 </style>

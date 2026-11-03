@@ -88,6 +88,11 @@
   --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
   --sidebar-border: oklch(0.92 0.004 286.32);
   --sidebar-ring: oklch(0.705 0.015 286.067);
+  /* Live background (see LiveBackground): light color, its opacity in the chat column and on
+     the desktop sides beyond it */
+  --field-dot: var(--foreground);
+  --field-opacity: 0.12;
+  --field-side-opacity: 0.3;
 }
 
 .dark {
@@ -124,7 +129,16 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.552 0.016 285.938);
+  --field-opacity: 0.18;
+  --field-side-opacity: 0.5;
 }
+
+/* Blocks over the live background: a semi-opaque theme fill that blurs the field under it.
+   Every blur layer is redrawn on each frame of the field, so phones get a denser fill without blur. */
+@utility surface {
+  @apply bg-card/90 sm:bg-card/70 sm:backdrop-blur-md;
+}
+
 
 @layer base {
   * {

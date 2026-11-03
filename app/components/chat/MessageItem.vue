@@ -36,7 +36,7 @@ const animated = computed(() => fresh.value.includes(props.message.id))
 
 /* Assistant answers take the full width: CV blocks are wide */
 .message.user {
-  @apply max-w-[85%] self-end rounded-2xl bg-muted px-4 py-2.5;
+  @apply max-w-[85%] self-end rounded-2xl bg-muted/90 px-4 py-2.5;
 }
 
 /* Hidden until its delay ends, then fades in; no motion when the user asked for less */

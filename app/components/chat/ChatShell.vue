@@ -123,13 +123,8 @@ function send(text: string) {
   @apply animate-in fade-in slide-in-from-bottom-2 duration-300;
 }
 
+/* No backdrop: the live background runs full screen under the composer */
 .composer {
-  @apply sticky bottom-0 z-10 flex shrink-0 flex-col gap-2 bg-background pb-4;
-}
-
-/* Messages fade out under the composer instead of being cut by a hard edge */
-.composer::before {
-  @apply pointer-events-none absolute inset-x-0 -top-6 h-6 bg-linear-to-t from-background to-transparent;
-  content: '';
+  @apply sticky bottom-0 z-10 flex shrink-0 flex-col gap-2 pb-4;
 }
 </style>

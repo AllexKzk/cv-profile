@@ -52,7 +52,8 @@ const html = computed(() => renderMarkdown(props.part.text))
   @apply bg-transparent p-0;
 }
 
+/* Muted text sits on its own fill: dots of the live background under it would cut the contrast */
 .markdown :deep(blockquote) {
-  @apply border-l-2 border-border pl-3 text-muted-foreground;
+  @apply rounded-r-md border-l-2 border-border bg-muted/60 py-1 pr-2 pl-3 text-muted-foreground;
 }
 </style>
