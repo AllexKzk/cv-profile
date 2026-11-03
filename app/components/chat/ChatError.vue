@@ -84,6 +84,6 @@ const { downloadCv } = useLocalScenarios()
 
 /* Liquid glass buttons; the selector outweighs the outline variant's own fill */
 .actions .action {
-  @apply glass hover:bg-accent/40;
+  @apply glass;
 }
 </style>

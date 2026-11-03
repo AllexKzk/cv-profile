@@ -125,6 +125,6 @@ const initials = computed(() => props.person.name.split(/\s+/).map(word => word[
 
 /* Liquid glass buttons; the selector outweighs the outline variant's own fill */
 .contacts .contact {
-  @apply glass hover:bg-accent/40;
+  @apply glass;
 }
 </style>

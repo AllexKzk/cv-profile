@@ -36,7 +36,7 @@ const { actions, run } = useQuickActions()
 /* Cards under the greeting and chips above the input are liquid glass (data-glass in the
    template); the selector outweighs the outline variant's own fill */
 .actions .action {
-  @apply glass hover:bg-accent/40;
+  @apply glass;
 }
 
 /* Chips float above the scrolling messages: blur the page text behind them */

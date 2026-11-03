@@ -140,7 +140,8 @@
    picture behind it and bends it at its edges, so the block itself has no fill, only an edge
    line and a lit rim. Without WebGL the background cannot do that and the browser blurs */
 @utility glass {
-  @apply border bg-transparent;
+  /* Important: shadcn button variants paint their own fill, also on hover and in the dark theme */
+  @apply border bg-transparent! hover:bg-transparent!;
   border-color: var(--glass-edge);
   box-shadow: inset 0 1px 0 var(--glass-rim), inset 0 -1px 0 var(--glass-shade);
 
