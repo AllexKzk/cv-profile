@@ -10,9 +10,6 @@ import {
   ribTraits,
   rippleAt,
   columnAlpha,
-  frostedAt,
-  glassAt,
-  roundedBoxSdf,
 } from '../../app/lib/live-field/field'
 
 describe('lightAt', () => {
@@ -149,49 +146,6 @@ describe('rippleAt', () => {
   it('fades out by the end of its life', () => {
     const age = FIELD.ripple.lifeS
     expect(rippleAt(age * FIELD.ripple.speedPx, 0, ring(age))[2]).toBeLessThan(1e-6)
-  })
-})
-
-describe('glassAt', () => {
-  const card = { x: 100, y: 100, w: 400, h: 200, r: 14 }
-  const { bevelPx, pullPx } = FIELD.glass
-
-  it('measures the distance to a rounded block', () => {
-    expect(roundedBoxSdf(300, 200, card)).toBeCloseTo(-100)
-    expect(roundedBoxSdf(300, 90, card)).toBeCloseTo(10)
-  })
-
-  it('leaves points outside the blocks alone', () => {
-    expect(glassAt(300, 50, [card])).toEqual({ sx: 300, sy: 50, sharp: 1, inside: false })
-  })
-
-  it('frosts the middle of a block', () => {
-    const g = glassAt(300, 200, [card])
-    expect(g.inside).toBe(true)
-    expect(g.sharp).toBe(0)
-    for (const value of [g.sx, g.sy]) expect(Number.isFinite(value)).toBe(true)
-  })
-
-  it('works as a lens at the edge: sharp, showing the picture from beyond it', () => {
-    const g = glassAt(300, 101, [card])
-    expect(g.sharp).toBeGreaterThan(0.9)
-    // Pulled up from beyond the top edge, minus the slight magnification towards the middle
-    expect(g.sy).toBeLessThan(101 - pullPx * 0.7)
-  })
-
-  it('frosts again deeper than the bevel', () => {
-    expect(glassAt(300, 100 + bevelPx + 5, [card]).sharp).toBe(0)
-  })
-})
-
-describe('frostedAt', () => {
-  it('is the light without ribs, at the average rib shading', () => {
-    const [w, h] = [1280, 800]
-    for (const x of [100, 101, 111, 121]) {
-      expect(frostedAt(x, 400, w, h, FIELD.staticTime)).toBeLessThanOrEqual(FIELD.glass.frost)
-    }
-    // No rib seams: neighbouring points barely differ
-    expect(Math.abs(frostedAt(640, 400, w, h, 40) - frostedAt(641, 400, w, h, 40))).toBeLessThan(0.01)
   })
 })
 

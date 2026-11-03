@@ -22,60 +22,9 @@ export const FIELD = {
   tilt: { offset: 0.12, rangeDeg: 30, time: 6 },
   // A press sends a ring across the glass: it pushes the light outwards and brightens the ribs
   ripple: { max: 4, speedPx: 650, widthPx: 60, lifeS: 1.4, pushPx: 45, glow: 0.85 },
-  // Liquid glass blocks (marked data-glass). Inside, the picture is frosted: the ribs average
-  // out to a soft glow (`frost` is the average rib shading). In a `bevelPx` band along the edge
-  // the glass works as a lens: it shows the picture from up to `pullPx` beyond its edge, squeezed
-  // and sharp. `magnify` slightly enlarges what is behind the middle of the block
-  // Up to `max` blocks at once (uniform budget: 2 vectors per block, fine even on old phones)
-  glass: { max: 16, bevelPx: 22, pullPx: 22, magnify: 0.03, frost: 0.47 },
   // Desktop: outside the chat column the field gets its own opacity, fading in over this many px
   sideFadePx: 120,
 } as const
-
-/** A glass block on screen: CSS px from the viewport top left, `r` is its corner radius. */
-export interface GlassRect {
-  x: number
-  y: number
-  w: number
-  h: number
-  r: number
-}
-
-/** Signed distance from (px, py) to a rounded rectangle: negative inside. */
-export function roundedBoxSdf(px: number, py: number, rect: GlassRect): number {
-  const r = Math.min(rect.r, rect.w / 2, rect.h / 2)
-  const qx = Math.abs(px - (rect.x + rect.w / 2)) - (rect.w / 2 - r)
-  const qy = Math.abs(py - (rect.y + rect.h / 2)) - (rect.h / 2 - r)
-  return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - r
-}
-
-/**
- * What a glass block does to screen point (x, y): where the picture there comes from (sx, sy),
- * how sharp it stays (1 outside and at the very edge, 0 frosted) and whether the point is
- * inside a block. The first block that contains the point wins: pass nested blocks (a button
- * inside a card) before their containers.
- * Same math as `glass()` in the shader.
- */
-export function glassAt(x: number, y: number, rects: readonly GlassRect[]): { sx: number, sy: number, sharp: number, inside: boolean } {
-  const { bevelPx, pullPx, magnify } = FIELD.glass
-  for (const rect of rects) {
-    const d = roundedBoxSdf(x, y, rect)
-    if (d >= 0) continue
-    let sx = x - (x - rect.x - rect.w / 2) * magnify
-    let sy = y - (y - rect.y - rect.h / 2) * magnify
-    const t = clamp(1 + d / bevelPx, 0, 1)
-    // The normal is only needed (and only defined) near the edge, not on the center line
-    if (t > 0) {
-      const gx = roundedBoxSdf(x + 1, y, rect) - roundedBoxSdf(x - 1, y, rect)
-      const gy = roundedBoxSdf(x, y + 1, rect) - roundedBoxSdf(x, y - 1, rect)
-      const len = Math.max(Math.hypot(gx, gy), 0.001)
-      sx += (gx / len) * t * t * pullPx
-      sy += (gy / len) * t * t * pullPx
-    }
-    return { sx, sy, sharp: smoothstep(0.2, 0.75, t), inside: true }
-  }
-  return { sx: x, sy: y, sharp: 1, inside: false }
-}
 
 /**
  * Opacity of the field at screen x: `column` inside the chat column, `side` beyond it, with a
@@ -236,24 +185,6 @@ export function flutedAt(
   return Math.min(light * ribShade(u, rib.glint * shimmer, rib.rim * shimmer), 1)
 }
 
-/**
- * The picture behind frosted glass at (x, y): the light without ribs, at the average rib
- * shading, as if the ribs were blurred away.
- */
-export function frostedAt(
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  t: number,
-  offset: readonly [number, number] = [0, 0],
-  ripples: readonly Ripple[] = [],
-): number {
-  const [pushX, pushY, glow] = rippleAt(x, y, ripples)
-  const light = lightAt((x + pushX) / w + offset[0], (y + pushY) / h + offset[1], w / h, t)
-  return Math.min(light + glow * FIELD.ripple.glow, 1) * FIELD.glass.frost
-}
-
 /** GLSL source of the same functions, generated from FIELD and BLOBS so the two never drift. */
 export function fieldGlsl(): string {
   const blobs = BLOBS.map(b => `
@@ -321,42 +252,6 @@ float flutedAt(vec2 p, vec2 size, float t, vec2 offset) {
   float glint = (0.1 + 0.9 * c) * shimmer;
   float rim = 0.9 * smoothstep(0.65, 1.0, d) * shimmer;
   return min(light * ribShade(u, glint, rim), 1.0);
-}
-
-float frostedAt(vec2 p, vec2 size, float t, vec2 offset) {
-  vec3 rp = ripple(p);
-  float light = lightAt((p + rp.xy) / size + offset, size.x / size.y, t);
-  return min(light + rp.z * ${f(FIELD.ripple.glow)}, 1.0) * ${f(FIELD.glass.frost)};
-}
-
-float boxSdf(vec2 p, vec4 rect, float radius) {
-  float r = min(radius, min(rect.z, rect.w) * 0.5);
-  vec2 q = abs(p - (rect.xy + rect.zw * 0.5)) - (rect.zw * 0.5 - r);
-  return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
-}
-
-// Glass blocks: x, y, width, height (CSS px; zero width means unused) and corner radii.
-// Declared by the renderer. Returns the sample point, sharpness and an inside flag
-vec4 glass(vec2 p) {
-  for (int k = 0; k < ${FIELD.glass.max}; k++) {
-    vec4 rect = uGlass[k];
-    float radius = uGlassRadius[k];
-    if (rect.z > 0.0) {
-      float d = boxSdf(p, rect, radius);
-      if (d < 0.0) {
-        vec2 s = p - (p - rect.xy - rect.zw * 0.5) * ${f(FIELD.glass.magnify)};
-        float t = clamp(1.0 + d / ${f(FIELD.glass.bevelPx)}, 0.0, 1.0);
-        if (t > 0.0) {
-          vec2 grad = vec2(
-            boxSdf(p + vec2(1.0, 0.0), rect, radius) - boxSdf(p - vec2(1.0, 0.0), rect, radius),
-            boxSdf(p + vec2(0.0, 1.0), rect, radius) - boxSdf(p - vec2(0.0, 1.0), rect, radius));
-          s += grad / max(length(grad), 0.001) * t * t * ${f(FIELD.glass.pullPx)};
-        }
-        return vec4(s, smoothstep(0.2, 0.75, t), 1.0);
-      }
-    }
-  }
-  return vec4(p, 1.0, 0.0);
 }
 
 float columnAlpha(float x, vec2 column, vec2 opacity) {

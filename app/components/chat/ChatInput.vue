@@ -41,7 +41,6 @@ function onEnter(event: KeyboardEvent) {
 <template>
   <form
     class="input"
-    data-glass
     @submit.prevent="submit"
   >
     <Tooltip>
@@ -93,11 +92,9 @@ function onEnter(event: KeyboardEvent) {
 <style scoped>
 @reference "~/assets/css/main.css";
 
-/* One row: attach, the field, send. The field grows upwards, the buttons stay on its last line.
-   Messages scroll under it: the shader frosts only the background, so the page text behind
-   needs a real blur */
+/* One row: attach, the field, send. The field grows upwards, the buttons stay on its last line */
 .input {
-  @apply flex items-end gap-1 rounded-2xl glass p-1.5 backdrop-blur-xl;
+  @apply flex items-end gap-1 rounded-2xl border border-input bg-background p-1.5 shadow-xs;
   @apply focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50;
 }
 </style>

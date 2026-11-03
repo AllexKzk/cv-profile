@@ -85,16 +85,10 @@
   --sidebar-border: oklch(0.92 0.004 286.32);
   --sidebar-ring: oklch(0.705 0.015 286.067);
   /* Live background (see LiveBackground): light color, its opacity in the chat column and on
-     the desktop sides beyond it. Inside liquid glass blocks it stays as in the column: the
-     glass only blurs it, it does not brighten it */
+     the desktop sides beyond it */
   --field-dot: var(--foreground);
   --field-opacity: 0.12;
   --field-side-opacity: 0.3;
-  --field-glass-opacity: var(--field-opacity);
-  /* Liquid glass blocks: no fill, only the edge line and the light catching the top edge */
-  --glass-edge: oklch(0.141 0.005 285.823 / 10%);
-  --glass-rim: oklch(1 0 0 / 90%);
-  --glass-shade: oklch(0.141 0.005 285.823 / 5%);
 }
 
 .dark {
@@ -131,23 +125,12 @@
   --sidebar-ring: oklch(0.552 0.016 285.938);
   --field-opacity: 0.18;
   --field-side-opacity: 0.5;
-  --glass-edge: oklch(1 0 0 / 16%);
-  --glass-rim: oklch(1 0 0 / 22%);
-  --glass-shade: oklch(1 0 0 / 6%);
 }
 
-/* Liquid glass blocks. Mark the element with data-glass: the live background then blurs the
-   picture behind it and bends it at its edges, so the block itself has no fill, only an edge
-   line and a lit rim. Without WebGL the background cannot do that and the browser blurs */
-@utility glass {
-  /* Important: shadcn button variants paint their own fill, also on hover and in the dark theme */
-  @apply border bg-transparent! hover:bg-transparent!;
-  border-color: var(--glass-edge);
-  box-shadow: inset 0 1px 0 var(--glass-rim), inset 0 -1px 0 var(--glass-shade);
-
-  :root[data-field='static'] & {
-    @apply backdrop-blur-xl;
-  }
+/* Blocks over the live background: a semi-opaque theme fill that blurs the field under it.
+   Every blur layer is redrawn on each frame of the field, so phones get a denser fill without blur. */
+@utility surface {
+  @apply bg-card/90 sm:bg-card/70 sm:backdrop-blur-md;
 }
 
 

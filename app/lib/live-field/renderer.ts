@@ -2,18 +2,15 @@
 // single coarse Canvas 2D frame when WebGL is unavailable. Loaded lazily (dynamic import)
 // after hydration.
 import { FIELD, columnAlpha, createFrameGate, fieldGlsl, flutedAt, mixRgb } from './field'
-import type { GlassRect, Rgb } from './field'
+import type { Rgb } from './field'
 
-/** How opaque the field is: in the chat column, beyond it (desktop sides), inside glass blocks. */
+/** How opaque the field is: in the chat column and beyond it (desktop sides). */
 export interface FieldOpacity {
   column: number
   side: number
-  glass: number
 }
 
 export interface FieldController {
-  /** 'webgl' draws glass blocks itself; 'static' cannot, so the page blurs them with CSS. */
-  mode: 'webgl' | 'static'
   /** Allow motion (false: one static frame, no tilt or ripples; reduced motion). */
   setAnimated: (animated: boolean) => void
   /** Let the light drift on its own (desktop) or only follow tilt and presses (phones). */
@@ -22,8 +19,6 @@ export interface FieldController {
   setTilt: (x: number, y: number) => void
   /** Send a ring across the glass from a point in CSS px. */
   ripple: (x: number, y: number) => void
-  /** Glass blocks on screen (viewport CSS px): frosted inside, a lens at the edges. */
-  setGlass: (rects: readonly GlassRect[]) => void
   /** Left and right edges of the chat column, CSS px. */
   setColumn: (left: number, right: number) => void
   /** Pause the loop while the tab is hidden. */
@@ -62,7 +57,7 @@ export function readFieldColor(): Rgb {
   return [r / 255, g / 255, b / 255]
 }
 
-/** Opacities from the `--field-opacity`, `--field-side-opacity` and `--field-glass-opacity` tokens. */
+/** Opacities from the `--field-opacity` and `--field-side-opacity` tokens. */
 export function readFieldOpacity(): FieldOpacity {
   const style = getComputedStyle(document.documentElement)
   const read = (name: string, fallback: number) => {
@@ -70,7 +65,7 @@ export function readFieldOpacity(): FieldOpacity {
     return Number.isFinite(value) ? value : fallback
   }
   const column = read('--field-opacity', 0.15)
-  return { column, side: read('--field-side-opacity', column), glass: read('--field-glass-opacity', column) }
+  return { column, side: read('--field-side-opacity', column) }
 }
 
 export function startField(canvas: HTMLCanvasElement, options: FieldOptions): FieldController {
@@ -105,23 +100,16 @@ uniform float uTime;
 uniform vec3 uColor;
 uniform vec2 uOffset;
 uniform vec4 uRipples[${FIELD.ripple.max}];
-uniform vec4 uGlass[${FIELD.glass.max}];
-uniform float uGlassRadius[${FIELD.glass.max}];
 uniform vec2 uColumn;
-// Opacity in the chat column, beyond it, inside glass blocks
-uniform vec3 uOpacity;
+// Opacity in the chat column and beyond it
+uniform vec2 uOpacity;
 
 ${fieldGlsl()}
 
 void main() {
   // CSS px with y down, like the TS copy in field.ts
   vec2 p = vec2(gl_FragCoord.x, uSize.y * uScale - gl_FragCoord.y) / uScale;
-  vec4 g = glass(p);
-  float v = flutedAt(g.xy, uSize, uTime, uOffset);
-  // Inside a glass block the ribs blur away into a soft glow, except along the lens edge
-  if (g.z < 0.999) v = mix(frostedAt(g.xy, uSize, uTime, uOffset), v, g.z);
-  float opacity = mix(columnAlpha(p.x, uColumn, uOpacity.xy), uOpacity.z, g.w);
-  float a = v * opacity;
+  float a = flutedAt(p, uSize, uTime, uOffset) * columnAlpha(p.x, uColumn, uOpacity);
   // The canvas is premultiplied: the page background shows through
   gl_FragColor = vec4(uColor * a, a);
 }
@@ -142,10 +130,8 @@ function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, option
   let lightTime = FIELD.staticTime
   const tilt = { x: 0, y: 0, targetX: 0, targetY: 0 }
   let ripples: Array<{ x: number, y: number, start: number }> = []
-  const glass = new Float32Array(FIELD.glass.max * 4)
-  const glassRadius = new Float32Array(FIELD.glass.max)
   let column: [number, number] = [0, 1e6]
-  // One more frame is needed (glass blocks moved, the column changed) even if nothing animates
+  // One more frame is needed (the column changed) even if nothing animates
   let dirty = false
   let lastNow = 0
   let frame = 0
@@ -188,8 +174,6 @@ function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, option
       color: loc('uColor'),
       offset: loc('uOffset'),
       ripples: loc('uRipples'),
-      glass: loc('uGlass'),
-      glassRadius: loc('uGlassRadius'),
       column: loc('uColumn'),
       opacity: loc('uOpacity'),
     }
@@ -219,10 +203,8 @@ function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, option
     gl.uniform1f(uniforms.time, lightTime + (tiltX + tiltY) * FIELD.tilt.time)
     gl.uniform2f(uniforms.offset, tiltX * FIELD.tilt.offset, tiltY * FIELD.tilt.offset)
     gl.uniform4fv(uniforms.ripples, packed)
-    gl.uniform4fv(uniforms.glass, glass)
-    gl.uniform1fv(uniforms.glassRadius, glassRadius)
     gl.uniform2f(uniforms.column, column[0], column[1])
-    gl.uniform3f(uniforms.opacity, opacity.column, opacity.side, opacity.glass)
+    gl.uniform2f(uniforms.opacity, opacity.column, opacity.side)
     gl.uniform3f(uniforms.color, color[0], color[1], color[2])
     gl.drawArrays(gl.TRIANGLES, 0, 3)
     dirty = false
@@ -232,7 +214,7 @@ function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, option
     }
   }
 
-  // Something is still moving: the drift, the tilt easing, a ring, a color blend or the glass
+  // Something is still moving: the drift, the tilt easing, a ring or a color blend
   function busy(): boolean {
     if (fadeStart || dirty) return true
     if (!animated) return false
@@ -244,7 +226,6 @@ function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, option
 
   function tick(now: number) {
     frame = requestAnimationFrame(tick)
-    // Glass blocks moved (scroll): draw this frame so their edges stay glued to them
     if (!gate(now) && !dirty) return
     const step = lastNow ? Math.min(now - lastNow, MAX_STEP_MS) : 0
     lastNow = now
@@ -302,7 +283,6 @@ function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, option
   sync()
 
   return {
-    mode: 'webgl',
     setAnimated(value) {
       animated = value
       if (!animated) {
@@ -327,16 +307,6 @@ function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, option
     ripple(x, y) {
       if (!animated) return
       ripples.push({ x, y, start: performance.now() })
-      sync()
-    },
-    setGlass(rects) {
-      glass.fill(0)
-      glassRadius.fill(0)
-      rects.slice(0, FIELD.glass.max).forEach((r, k) => {
-        glass.set([r.x, r.y, r.w, r.h], k * 4)
-        glassRadius[k] = r.r
-      })
-      dirty = true
       sync()
     },
     setColumn(left, right) {
@@ -373,8 +343,7 @@ function startWebGl(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, option
   }
 }
 
-// No WebGL: compute the same picture once on the CPU at a coarse resolution and keep it static.
-// Glass blocks move with the scroll, so this mode leaves them to CSS blur
+// No WebGL: compute the same picture once on the CPU at a coarse resolution and keep it static
 function startCanvas2d(canvas: HTMLCanvasElement, options: FieldOptions): FieldController {
   const ctx = canvas.getContext('2d')
   let color = options.color
@@ -409,12 +378,10 @@ function startCanvas2d(canvas: HTMLCanvasElement, options: FieldOptions): FieldC
   if (ctx) options.onReady?.()
 
   return {
-    mode: 'static',
     setAnimated() {},
     setAutonomous() {},
     setTilt() {},
     ripple() {},
-    setGlass() {},
     setColumn(left, right) {
       if (left === column[0] && right === column[1]) return
       column = [left, right]

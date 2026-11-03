@@ -67,8 +67,6 @@ const initials = computed(() => props.person.name.split(/\s+/).map(word => word[
         as-child
         variant="outline"
         size="sm"
-        class="contact"
-        data-glass
       >
         <a
           :href="link.href"
@@ -121,10 +119,5 @@ const initials = computed(() => props.person.name.split(/\s+/).map(word => word[
 
 .contacts {
   @apply mt-4 flex flex-wrap gap-2;
-}
-
-/* Liquid glass buttons; the selector outweighs the outline variant's own fill */
-.contacts .contact {
-  @apply glass;
 }
 </style>

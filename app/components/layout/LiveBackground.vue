@@ -12,9 +12,8 @@ import type { FieldController, FieldOpacity } from '~/lib/live-field/renderer'
 // Decorative light behind fluted glass, full screen behind the page. The server renders an empty
 // canvas; the renderer is a separate chunk loaded when the browser is idle after hydration.
 // Desktop: the light drifts on its own. Phones: it stands still and follows the tilt.
-// Presses on buttons and fields send a ring across the glass on both. Blocks marked
-// `data-glass` are liquid glass: the shader frosts the picture behind them and bends it at
-// their edges. Desktop sides beyond the chat column get their own opacity.
+// Presses on buttons and fields send a ring across the glass on both. Desktop sides beyond
+// the chat column get their own opacity.
 const canvas = useTemplateRef('canvas')
 const ready = ref(false)
 const reducedMotion = usePreferredReducedMotion()
@@ -38,12 +37,9 @@ async function init() {
       animated: animated.value,
       onReady: () => (ready.value = true),
     })
-    // Without WebGL the glass blocks fall back to a CSS blur (see the glass utility)
-    document.documentElement.dataset.field = field.mode
     field.setVisible(visibility.value === 'visible')
     field.setAutonomous(!touch.value)
     updateColumn()
-    updateGlass()
   }
   catch (error) {
     // A broken background must never break the page
@@ -119,59 +115,7 @@ function updateColumn() {
   if (box) field?.setColumn(box.left, box.right)
 }
 
-// Glass blocks: their rects feed the shader. Read synchronously on scroll and resize, so the
-// frosted area and the lens edges move in the same frame as the blocks; DOM changes are
-// batched to a frame
-// Same as FIELD.glass.max (the renderer chunk is loaded lazily, so it is not imported here)
-const GLASS_MAX = 16
-
-function updateGlass() {
-  if (!field) return
-  const height = window.innerHeight
-  const visible: Array<{ element: Element, box: DOMRect }> = []
-  for (const element of document.querySelectorAll('[data-glass]')) {
-    const box = element.getBoundingClientRect()
-    if (box.width > 0 && box.height > 0 && box.bottom > -40 && box.top < height + 40) {
-      visible.push({ element, box })
-    }
-  }
-  const area = (b: DOMRect) => b.width * b.height
-  // Over the shader's limit the big blocks (cards) win over small ones (buttons); then the
-  // small ones go first, so a button inside a card shows its own glass
-  const chosen = visible
-    .sort((a, b) => area(b.box) - area(a.box))
-    .slice(0, GLASS_MAX)
-    .sort((a, b) => area(a.box) - area(b.box))
-  field.setGlass(chosen.map(({ element, box }) => ({
-    x: box.left,
-    y: box.top,
-    w: box.width,
-    h: box.height,
-    r: Number.parseFloat(getComputedStyle(element).borderTopLeftRadius) || 0,
-  })))
-}
-
-let glassFrame = 0
-function scheduleGlass() {
-  if (glassFrame) return
-  glassFrame = requestAnimationFrame(() => {
-    glassFrame = 0
-    updateGlass()
-  })
-}
-
-useEventListener(() => (import.meta.client ? window : null), 'scroll', updateGlass, { passive: true })
-useEventListener(() => (import.meta.client ? window : null), 'resize', () => {
-  updateColumn()
-  updateGlass()
-}, { passive: true })
-// Messages slide in with CSS animations: re-read the rects when they settle
-useEventListener(() => (import.meta.client ? document : null), 'animationend', scheduleGlass, { passive: true })
-useMutationObserver(
-  () => (import.meta.client ? document.body : null),
-  scheduleGlass,
-  { childList: true, subtree: true },
-)
+useEventListener(() => (import.meta.client ? window : null), 'resize', updateColumn, { passive: true })
 
 let resizeTimer: ReturnType<typeof setTimeout> | undefined
 useResizeObserver(canvas, () => {
@@ -199,7 +143,7 @@ useResizeObserver(canvas, () => {
 }
 
 /* The shader applies the opacity tokens itself: low in the chat column for readability,
-   higher on the desktop sides and inside glass blocks */
+   higher on the desktop sides */
 .field.ready {
   @apply opacity-100;
 }
