@@ -4,7 +4,10 @@ defineProps<{ title?: string }>()
 </script>
 
 <template>
-  <section class="card">
+  <section
+    class="card"
+    data-shine
+  >
     <h3
       v-if="title"
       class="title"
