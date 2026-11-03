@@ -51,18 +51,14 @@ export function scoreWithPriorities(requirements: (Classified & Pick<Requirement
 
 const IMPORTANCE_ORDER: Record<ScoreImportance, number> = { must: 0, nice: 1, none: 2 }
 
-// Strengths and risks of the report, built by code so they follow the visitor's answers
+// Strengths and risks of the report, built by code so they follow the visitor's answers.
+// Risks are explicit gaps only (a must-have the CV lacks): partial and unknown stay out of them
 export function reportHighlights<T extends { importance: ScoreImportance, status: Requirement['status'] }>(requirements: T[]) {
   const strengths = requirements
     .filter(r => r.status === 'match' && r.importance !== 'none')
     .sort((a, b) => IMPORTANCE_ORDER[a.importance] - IMPORTANCE_ORDER[b.importance])
     .slice(0, MAX_STRENGTHS)
-  const must = requirements.filter(r => r.importance === 'must')
-  const risks = [
-    ...must.filter(r => r.status === 'missing'),
-    ...must.filter(r => r.status === 'partial'),
-    ...must.filter(r => r.status === 'unknown'),
-  ]
+  const risks = requirements.filter(r => r.importance === 'must' && r.status === 'missing')
   return { strengths, risks: risks.slice(0, MAX_RISKS), moreRisks: Math.max(0, risks.length - MAX_RISKS) }
 }
 

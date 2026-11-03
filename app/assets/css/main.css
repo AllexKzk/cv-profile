@@ -146,6 +146,11 @@
   @apply bg-transparent backdrop-blur-md;
 }
 
+/* A CV skill the visitor asked for (vacancy, brief, their messages): a ring, the fill stays */
+@utility skill-requested {
+  @apply ring-2 ring-success ring-offset-1 ring-offset-background;
+}
+
 /* Hover glint: elements marked data-shine get a metallic highlight on their border that follows
    the mouse (the shine plugin writes --shine-x / --shine-y). A 1px ring over the border, so the
    content is untouched; touch screens never see it. An element may set --shine-strength (the

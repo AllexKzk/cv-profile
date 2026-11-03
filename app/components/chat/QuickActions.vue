@@ -1,5 +1,6 @@
 <script setup lang="ts">
-// Big cards under the greeting, compact chips above the input once the chat has started
+// Big cards under the greeting, compact chips above the input once the chat has started;
+// an action already used in this chat is not offered again
 defineProps<{ compact?: boolean }>()
 
 const { actions, run } = useQuickActions()
@@ -7,6 +8,7 @@ const { actions, run } = useQuickActions()
 
 <template>
   <div
+    v-if="actions.length"
     class="actions"
     :class="{ compact }"
   >

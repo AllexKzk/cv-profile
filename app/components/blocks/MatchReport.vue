@@ -2,14 +2,13 @@
 import { ChevronDown, CircleCheck, CircleHelp, CircleMinus, CircleX, LoaderCircle, Send } from '@lucide/vue'
 import type { Component } from 'vue'
 import type { LeadSubject } from '#shared/lead'
-import { matchLevel } from '#shared/match/match-score'
 import { applyPriorities, clarificationCandidates, PRIORITIES, reportHighlights, scoreWithPriorities } from '#shared/match/report'
 import type { Priority } from '#shared/match/report'
-import { REQUIREMENT_CATEGORIES, REQUIREMENT_STATUSES } from '#shared/match/schema'
+import { REQUIREMENT_STATUSES } from '#shared/match/schema'
 import type { RequirementStatus } from '#shared/match/schema'
 import type { CvToolPart } from '#shared/types/chat'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { ButtonGroup } from '@/components/ui/button-group'
 import CvCard from './CvCard.vue'
 import LeadDialog from './LeadDialog.vue'
 
@@ -39,21 +38,12 @@ const clarified = computed(() => Object.keys(priorities.values.value).length > 0
 const highlights = computed(() => reportHighlights(requirements.value))
 const mustCount = computed(() => analysis.value?.requirements.filter(r => r.importance === 'must').length ?? 0)
 
-const categories = computed(() => [...score.value.byCategory]
-  .sort((a, b) => REQUIREMENT_CATEGORIES.indexOf(a.category) - REQUIREMENT_CATEGORIES.indexOf(b.category))
-  .map(item => ({ ...item, level: matchLevel(item.percent) })))
-
 // All requirements grouped by status, matches first
 const groups = computed(() => REQUIREMENT_STATUSES
   .map(status => ({ status, items: requirements.value.filter(r => r.status === status) }))
   .filter(group => group.items.length))
 
 const priorityOf = (name: string): Priority => priorities.values.value[name] ?? 'must'
-
-function choose(name: string, value: unknown) {
-  // A toggle group can be unselected by a second click: keep the current answer then
-  if (typeof value === 'string' && (PRIORITIES as readonly string[]).includes(value)) priorities.set(name, value as Priority)
-}
 
 // A lead sent from this report leaves a `data-lead` part pointing at it
 const sent = computed(() => messages.value.some(message =>
@@ -156,75 +146,42 @@ const subject = computed((): LeadSubject | undefined => analysis.value && {
             :key="item.name"
             class="clarify-item"
           >
-            <div class="clarify-text">
-              <p class="name">
-                <component
-                  :is="STATUS_ICONS[item.status]"
-                  class="icon"
-                  :class="item.status"
-                  :aria-label="$t(`vacancy.match.status.${item.status}`)"
-                />
-                {{ item.name }}
-              </p>
-              <p
-                v-if="item.evidence"
-                class="evidence"
-              >
-                {{ item.evidence }}
-              </p>
+            <div class="point">
+              <component
+                :is="STATUS_ICONS[item.status]"
+                class="icon"
+                :class="item.status"
+                :aria-label="$t(`vacancy.match.status.${item.status}`)"
+              />
+              <div class="point-text">
+                <p class="name">
+                  {{ item.name }}
+                </p>
+                <p
+                  v-if="item.evidence"
+                  class="evidence"
+                >
+                  {{ item.evidence }}
+                </p>
+              </div>
             </div>
-            <ToggleGroup
-              type="single"
-              variant="outline"
-              size="sm"
+            <ButtonGroup
               class="priority"
-              :model-value="priorityOf(item.name)"
-              :disabled="priorities.busy.value"
               :aria-label="$t('vacancy.report.clarify.label', { name: item.name })"
-              @update:model-value="choose(item.name, $event)"
             >
-              <ToggleGroupItem
+              <Button
                 v-for="value in PRIORITIES"
                 :key="value"
-                :value="value"
-                class="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                type="button"
+                size="sm"
+                :variant="priorityOf(item.name) === value ? 'default' : 'outline'"
+                :aria-pressed="priorityOf(item.name) === value"
+                :disabled="priorities.busy.value"
+                @click="priorities.set(item.name, value)"
               >
                 {{ $t(`vacancy.report.priority.${value}`) }}
-              </ToggleGroupItem>
-            </ToggleGroup>
-          </li>
-        </ul>
-      </section>
-
-      <section
-        v-if="categories.length"
-        class="section"
-      >
-        <h4 class="section-title">
-          {{ $t('vacancy.report.categories') }}
-        </h4>
-        <ul class="categories">
-          <li
-            v-for="item in categories"
-            :key="item.category"
-            class="category"
-            :class="item.level"
-          >
-            <span class="category-name">{{ $t(`vacancy.report.category.${item.category}`) }}</span>
-            <span
-              class="bar"
-              role="meter"
-              aria-valuemin="0"
-              aria-valuemax="100"
-              :aria-valuenow="item.percent"
-              :aria-label="$t(`vacancy.report.category.${item.category}`)"
-            >
-              <span
-                class="bar-fill"
-                :style="{ width: `${item.percent}%` }"
-              />
-            </span>
-            <span class="category-value">{{ item.percent }}%</span>
+              </Button>
+            </ButtonGroup>
           </li>
         </ul>
       </section>
@@ -289,13 +246,7 @@ const subject = computed((): LeadSubject | undefined => analysis.value && {
                   {{ item.name }}
                 </p>
                 <p
-                  v-if="item.status === 'unknown'"
-                  class="evidence"
-                >
-                  {{ $t('vacancy.report.askAtInterview') }}
-                </p>
-                <p
-                  v-else-if="item.evidence"
+                  v-if="item.evidence"
                   class="evidence"
                 >
                   {{ item.evidence }}
@@ -355,7 +306,10 @@ const subject = computed((): LeadSubject | undefined => analysis.value && {
                 <div class="point-text">
                   <p class="name">
                     {{ requirement.name }}
-                    <Badge :variant="requirement.importance === 'must' ? 'secondary' : 'outline'">
+                    <Badge
+                      :variant="requirement.importance === 'must' ? 'secondary' : 'outline'"
+                      class="ml-1 align-middle"
+                    >
                       {{ $t(`vacancy.match.importance.${requirement.importance}`) }}
                     </Badge>
                   </p>
@@ -495,44 +449,8 @@ const subject = computed((): LeadSubject | undefined => analysis.value && {
   @apply flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4;
 }
 
-.clarify-text {
-  @apply min-w-0;
-}
-
 .priority {
-  @apply shrink-0 bg-background;
-}
-
-.categories {
-  @apply flex flex-col gap-2;
-}
-
-.category {
-  @apply grid grid-cols-[7rem_1fr_3rem] items-center gap-3 text-sm;
-}
-
-.category-name {
-  @apply truncate text-muted-foreground;
-}
-
-.bar {
-  @apply h-2 overflow-hidden rounded-full bg-muted;
-}
-
-.bar-fill {
-  @apply block h-full rounded-full bg-success transition-[width] duration-300 motion-reduce:transition-none;
-}
-
-.partial .bar-fill {
-  @apply bg-warning;
-}
-
-.weak .bar-fill {
-  @apply bg-destructive;
-}
-
-.category-value {
-  @apply text-right tabular-nums;
+  @apply shrink-0;
 }
 
 .highlights {
@@ -556,8 +474,9 @@ const subject = computed((): LeadSubject | undefined => analysis.value && {
   @apply min-w-0;
 }
 
+/* Plain text flow: a long name wraps beside its icon, a badge follows the last word */
 .name {
-  @apply flex flex-wrap items-center gap-2 text-sm font-medium;
+  @apply text-sm font-medium;
 }
 
 .evidence {
@@ -566,10 +485,6 @@ const subject = computed((): LeadSubject | undefined => analysis.value && {
 
 .icon {
   @apply mt-0.5 size-4 shrink-0;
-}
-
-.clarify-text .icon {
-  @apply mt-0;
 }
 
 .icon.match {

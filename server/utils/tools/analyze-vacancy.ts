@@ -24,13 +24,15 @@ function skillIndex(cv: Cv): Map<string, string> {
 }
 
 // Cleans what the model sent and scores it. The model classifies; this code only cuts, dedupes,
-// corrects stack requirements up by skill aliases (never down) and computes the percentage.
+// drops work conditions (office, remote, relocation: agreed, not assessed), corrects stack
+// requirements up by skill aliases (never down) and computes the percentage.
 export function buildVacancyAnalysis(input: AnalyzeVacancyInput, cv: Cv): VacancyAnalysis {
   const skills = skillIndex(cv)
   const seen = new Set<string>()
   const requirements: Requirement[] = []
 
   for (const raw of input.requirements) {
+    if (raw.category === 'format') continue
     const name = clip(raw.name, MATCH_LIMITS.nameChars)
     if (!name || seen.has(key(name))) continue
     seen.add(key(name))

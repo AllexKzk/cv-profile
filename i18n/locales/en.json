@@ -80,7 +80,8 @@
       "button": "Download"
     },
     "products": "Products",
-    "achievements": "Achievements"
+    "achievements": "Achievements",
+    "requested": "Asked for in this chat"
   },
   "interview": {
     "options": {
@@ -251,22 +252,11 @@
         "nice": "Nice to have",
         "none": "Not important"
       },
-      "categories": "By category",
-      "category": {
-        "stack": "Stack",
-        "experience": "Experience",
-        "domain": "Domain",
-        "format": "Work format",
-        "language": "Languages",
-        "education": "Education",
-        "other": "Other"
-      },
       "strengths": "Strengths",
       "risks": "Risks",
       "noStrengths": "No clear matches",
       "noRisks": "No critical gaps",
       "moreRisks": "{n} more in the full list",
-      "askAtInterview": "Not in the CV: worth asking at the interview",
       "all": "All requirements ({n})",
       "cta": "Send the report to Alexandr",
       "sent": "Report sent"

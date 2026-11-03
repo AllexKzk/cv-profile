@@ -7,6 +7,8 @@ import CvCard from './CvCard.vue'
 // One job as a standalone card: the agent can show a single job on its own
 const props = defineProps<{ job: CvExperience }>()
 
+const isRequested = useRequestedSkills()
+
 const { t, locale } = useI18n()
 
 const period = computed(() => {
@@ -117,7 +119,11 @@ const duration = computed(() => formatDuration(monthsBetween(props.job.start, pr
           v-for="tech in job.stack"
           :key="tech"
         >
-          <Badge variant="secondary">
+          <Badge
+            variant="secondary"
+            :class="{ requested: isRequested([tech]) }"
+            :title="isRequested([tech]) ? $t('cv.requested') : undefined"
+          >
             {{ tech }}
           </Badge>
         </li>
@@ -213,5 +219,9 @@ const duration = computed(() => formatDuration(monthsBetween(props.job.start, pr
 
 .stack {
   @apply flex flex-wrap gap-1.5 border-t pt-4;
+}
+
+.requested {
+  @apply skill-requested;
 }
 </style>
