@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { CircleAlert, Loader2 } from '@lucide/vue'
-import type { BriefFit, VacancyBrief } from '#shared/interview/brief'
 import { LEAD_ERROR_CODES, LEAD_LIMITS } from '#shared/lead'
-import type { LeadErrorCode } from '#shared/lead'
+import type { LeadErrorCode, LeadSubject } from '#shared/lead'
 import {
   Dialog,
   DialogContent,
@@ -18,10 +17,10 @@ import { Textarea } from '@/components/ui/textarea'
 
 // Lead form: sent to the candidate's Telegram only by this explicit click. The trigger is the slot.
 const props = defineProps<{
-  // toolCallId of the brief: the confirmation part points back at it
+  // toolCallId of the brief or analysis: the confirmation part points back at it
   source: string
-  brief: VacancyBrief
-  fit: BriefFit
+  // What is sent with the contact: the interview brief or the match report
+  subject: LeadSubject
 }>()
 
 const { locale } = useI18n()
@@ -49,7 +48,7 @@ async function submit() {
   try {
     await $fetch('/api/lead', {
       method: 'POST',
-      body: { ...form, brief: props.brief, fit: props.fit, locale: locale.value },
+      body: { ...form, ...props.subject, locale: locale.value },
     })
     open.value = false
     answer([{ type: 'data-lead', data: { source: props.source } }])
@@ -71,7 +70,7 @@ async function submit() {
     <DialogContent>
       <DialogHeader>
         <DialogTitle>{{ $t('lead.title', { name: cv.person.name }) }}</DialogTitle>
-        <DialogDescription>{{ $t('lead.description') }}</DialogDescription>
+        <DialogDescription>{{ $t(`lead.description.${subject.kind}`) }}</DialogDescription>
       </DialogHeader>
       <form
         class="form"

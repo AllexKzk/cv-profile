@@ -1,6 +1,7 @@
 import type { UIMessage } from 'ai'
 import { z } from 'zod'
 import { askQuestionInputSchema, askQuestionOutputSchema, submitBriefOutputSchema, vacancyBriefSchema } from '../interview/brief'
+import { prioritiesDataSchema } from '../match/report'
 import { analyzeVacancyInputSchema, vacancyAnalysisSchema } from '../match/schema'
 import { vacancyDataSchema } from '../vacancy'
 
@@ -23,9 +24,11 @@ export const cvDataSchemas = {
   download: z.object({}),
   // Invisible marker in the user message of the quick action: the interview starts here
   interview: z.object({}),
-  // Confirmation of a sent lead; `source` is the toolCallId of the brief it was sent from
+  // Confirmation of a sent lead; `source` is the toolCallId of the brief or analysis it was sent from
   lead: z.object({ source: z.string().min(1).max(100) }),
   vacancy: vacancyDataSchema,
+  // The visitor's answers to the clarifications of a match report, kept in the analysis message
+  priorities: prioritiesDataSchema,
 }
 
 export type CvDataParts = { [K in keyof typeof cvDataSchemas]: z.infer<typeof cvDataSchemas[K]> }

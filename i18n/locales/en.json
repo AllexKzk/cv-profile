@@ -165,7 +165,10 @@
   },
   "lead": {
     "title": "Contact {name}",
-    "description": "The brief and your contact go to his Telegram. Nothing is sent until you click the button.",
+    "description": {
+      "brief": "The brief and your contact go to his Telegram. Nothing is sent until you click the button.",
+      "report": "The report summary and your contact go to his Telegram. Nothing is sent until you click the button."
+    },
     "contact": "Contact",
     "contactHint": "Telegram, email or phone",
     "name": "Name",
@@ -213,6 +216,7 @@
     "match": {
       "analyzing": "Analyzing the vacancy…",
       "failed": "Couldn't analyze the vacancy.",
+      "interrupted": "The analysis was interrupted. Send the vacancy again.",
       "noScore": "The CV doesn't say enough to estimate the match.",
       "level": {
         "strong": "Strong match",
@@ -228,9 +232,44 @@
       },
       "importance": {
         "must": "must",
-        "nice": "nice"
+        "nice": "nice",
+        "none": "not important"
       },
       "mustMissing": "Missing must-haves: {list}"
+    },
+    "report": {
+      "basis": "Requirements: {total}, must-haves: {must}",
+      "clarified": "With your clarifications",
+      "reset": "Reset",
+      "clarify": {
+        "title": "How critical is this?",
+        "hint": "The CV lacks these or covers them only partly. The percentage updates right away.",
+        "label": "Priority: {name}"
+      },
+      "priority": {
+        "must": "Required",
+        "nice": "Nice to have",
+        "none": "Not important"
+      },
+      "categories": "By category",
+      "category": {
+        "stack": "Stack",
+        "experience": "Experience",
+        "domain": "Domain",
+        "format": "Work format",
+        "language": "Languages",
+        "education": "Education",
+        "other": "Other"
+      },
+      "strengths": "Strengths",
+      "risks": "Risks",
+      "noStrengths": "No clear matches",
+      "noRisks": "No critical gaps",
+      "moreRisks": "{n} more in the full list",
+      "askAtInterview": "Not in the CV: worth asking at the interview",
+      "all": "All requirements ({n})",
+      "cta": "Send the report to Alexandr",
+      "sent": "Report sent"
     }
   }
 }

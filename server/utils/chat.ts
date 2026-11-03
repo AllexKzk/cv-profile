@@ -2,7 +2,8 @@ import { convertToModelMessages, isStepCount, streamText } from 'ai'
 import type { LanguageModel } from 'ai'
 import { trimHistory } from '#shared/chat/history'
 import { getCv } from '#shared/cv'
-import type { ChatErrorCode, CvDataPart, CvUIMessage } from '#shared/types/chat'
+import { prioritiesForModel, scoreWithPriorities } from '#shared/match/report'
+import type { ChatErrorCode, CvDataPart, CvToolPart, CvUIMessage } from '#shared/types/chat'
 import { isForeignOrigin, parseChatRequest } from './guard'
 import { answerCost } from './openrouter'
 import type { Limiter } from './rate-limit'
@@ -49,7 +50,11 @@ export function vacancyForModel({ source, fileName, text, truncated }: CvDataPar
 // user has already seen; the latest vacancy in full, earlier ones as a note (they are not paid
 // for again in every request).
 function dataPartConverter(messages: CvUIMessage[]) {
-  const latestVacancy = messages.flatMap(m => m.parts).findLast(part => part.type === 'data-vacancy')
+  const parts = messages.flatMap(m => m.parts)
+  const latestVacancy = parts.findLast(part => part.type === 'data-vacancy')
+  // The analysis a clarification belongs to, for the updated level (absent if trimmed away)
+  const analysis = (toolCallId: string) => parts.find((part): part is CvToolPart<'analyzeVacancy'> =>
+    part.type === 'tool-analyzeVacancy' && part.toolCallId === toolCallId)
 
   return (part: CvUIMessage['parts'][number]) => {
     if (part.type === 'data-cv') {
@@ -57,7 +62,12 @@ function dataPartConverter(messages: CvUIMessage[]) {
     }
     if (part.type === 'data-download') return { type: 'text' as const, text: '[A CV download card was shown to the user]' }
     if (part.type === 'data-interview') return { type: 'text' as const, text: '[The visitor started the interview]' }
-    if (part.type === 'data-lead') return { type: 'text' as const, text: '[The visitor sent their contact to the candidate from the brief card]' }
+    if (part.type === 'data-lead') return { type: 'text' as const, text: '[The visitor sent their contact to the candidate]' }
+    if (part.type === 'data-priorities') {
+      const found = analysis(part.data.source)
+      const score = found?.state === 'output-available' ? scoreWithPriorities(found.output.requirements, part.data.values) : undefined
+      return { type: 'text' as const, text: prioritiesForModel(part.data.values, score) }
+    }
     if (part.type === 'data-vacancy') {
       if (part === latestVacancy) return { type: 'text' as const, text: vacancyForModel(part.data) }
       return { type: 'text' as const, text: `[A vacancy was attached earlier: ${part.data.fileName ?? 'pasted text'}]` }
@@ -98,6 +108,9 @@ export async function handleChat(ctx: ChatContext): Promise<Response> {
     tools,
     stopWhen: isStepCount(MAX_STEPS),
     maxOutputTokens: scenario.maxOutputTokens,
+    providerOptions: 'reasoningEffort' in scenario
+      ? { openrouter: { reasoning: { effort: scenario.reasoningEffort } } }
+      : undefined,
     onFinish: async ({ steps, totalUsage }) => {
       const cost = answerCost(steps)
       console.info('[chat] usage', JSON.stringify({

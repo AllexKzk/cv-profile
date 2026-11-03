@@ -79,6 +79,7 @@ describe('handleChat', () => {
 
     const call = model.doStreamCalls[0]!
     expect(call.maxOutputTokens).toBe(800)
+    expect(call.providerOptions).toBeUndefined()
     expect(JSON.stringify(call.prompt[0])).toContain('<cv>')
     expect(JSON.stringify(call.prompt)).toContain('The CV section \\"skills\\" was shown to the user')
   })
@@ -197,6 +198,8 @@ describe('handleChat', () => {
         output: { title: 'Senior Frontend Engineer', score: { percent: 50, level: 'partial', mustMissing: ['Go'] } },
       })
       expect(model.doStreamCalls[0]!.maxOutputTokens).toBe(4000)
+      // Less thinking, so the requirements list fits in the step
+      expect(model.doStreamCalls[0]!.providerOptions).toEqual({ openrouter: { reasoning: { effort: 'low' } } })
       // The model gets the classification back, without the percentage
       const toolResult = JSON.stringify(model.doStreamCalls[1]!.prompt.at(-1))
       expect(toolResult).toContain('Go (must): missing')
@@ -239,6 +242,33 @@ describe('handleChat', () => {
       expect(response.status).toBe(200)
       await readAnswer(response)
       expect(JSON.stringify(model.doStreamCalls[0]!.prompt)).toContain('Go (must): missing')
+    })
+
+    it('passes the visitor\'s clarifications as one line with the recomputed level', async () => {
+      const model = mockModel(textStep('Then he fits.'))
+      const body = requestBody([
+        vacancyMessage('u0'),
+        {
+          id: 'a0',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-analyzeVacancy',
+              toolCallId: 'c',
+              state: 'output-available',
+              input: analysis,
+              output: { ...analysis, score: { percent: 50, level: 'partial', counts: { match: 1, partial: 1, missing: 1, unknown: 0 }, mustMissing: ['Go'], byCategory: [] } },
+            },
+            { type: 'data-priorities', data: { source: 'c', values: { Go: 'none' } } },
+          ],
+        } as CvUIMessage,
+        userMessage('And without Go?'),
+      ])
+      await readAnswer(await handleChat(context({ model, body })))
+      const prompt = JSON.stringify(model.doStreamCalls[0]!.prompt)
+      // Vue (must, match) + Fintech (nice, partial): (3 + 0.5) / 4 = 88% → strong
+      expect(prompt).toContain('Go — not important. Updated level: strong')
+      expect(prompt).not.toContain('88')
     })
   })
 })

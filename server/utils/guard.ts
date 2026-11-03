@@ -54,6 +54,8 @@ export async function parseChatRequest(raw: string | undefined): Promise<ChatReq
   if (messages.data.some(m => m.role === 'system')) return null
   // One vacancy per message, and only users attach them
   if (messages.data.some(m => vacancyCount(m) > (m.role === 'user' ? 1 : 0))) return null
+  // Clarifications of a report live in the assistant message of its analysis
+  if (messages.data.some(m => m.role !== 'assistant' && m.parts.some(part => part.type === 'data-priorities'))) return null
   // 'match' is the answer to an attached vacancy
   if (body.data.scenario === 'match' && (!last || vacancyCount(last) !== 1)) return null
 

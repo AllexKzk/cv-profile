@@ -24,6 +24,9 @@ export interface Scenario {
   // Per step, reasoning included: the requirements list of an analysis is longer than a usual
   // answer, and the model may think for ~1k tokens before writing it
   maxOutputTokens: number
+  // Without it the model may think until the limit and cut off the tool call. A token budget
+  // (`reasoning.max_tokens`) is not kept by the model: seen 2.7k thinking with a 1.5k cap.
+  reasoningEffort?: 'low' | 'medium' | 'high'
 }
 
 // A scenario is a system prompt and its limits
@@ -39,5 +42,6 @@ export const scenarios = {
   match: {
     system: (cv, now) => `${buildBasePrompt(cv, now)}\n\n${buildMatchPrompt(cv)}`,
     maxOutputTokens: 4000,
+    reasoningEffort: 'low',
   },
 } satisfies Record<ChatScenario, Scenario>

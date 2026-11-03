@@ -1,5 +1,8 @@
 import type { BriefFit, VacancyBrief } from '#shared/interview/brief'
 import type { LeadRequest } from '#shared/lead'
+import { applyPriorities, clarificationCandidates, scoreWithPriorities } from '#shared/match/report'
+import type { Priority } from '#shared/match/report'
+import type { MatchLevel } from '#shared/match/schema'
 
 export interface TelegramConfig {
   token: string
@@ -27,21 +30,27 @@ function salary(value: NonNullable<VacancyBrief['salary']>): string {
   return `${range} ${value.currency} / ${value.period === 'month' ? 'мес' : 'год'}`
 }
 
-// The message for the owner: labels in Russian, values as the visitor typed them
-export function formatLead(lead: LeadRequest): string {
-  const { brief, fit } = lead
-  const line = (label: string, value: string | undefined) => (value ? `${label}: ${value}` : undefined)
-  const text = (value: string | undefined) => (value ? escapeHtml(value) : undefined)
+const LEVEL: Record<MatchLevel, string> = {
+  strong: 'сильное совпадение',
+  good: 'хорошее совпадение',
+  partial: 'частичное совпадение',
+  weak: 'слабое совпадение',
+}
 
-  const contact = [
-    '<b>Новая заявка с сайта</b>',
-    line('Контакт', text(lead.contact)),
-    line('Имя', text(lead.name)),
-    line('Компания', text(lead.company)),
-    line('Комментарий', text(lead.comment)),
-  ]
-  const summary = [
-    '',
+const PRIORITY: Record<Priority, string> = {
+  must: 'обязательно',
+  nice: 'желательно',
+  none: 'не важно',
+}
+
+type Line = string | undefined
+const line = (label: string, value: string | undefined): Line => (value ? `${label}: ${value}` : undefined)
+const text = (value: string | undefined) => (value ? escapeHtml(value) : undefined)
+const names = (list: { name: string }[]) => (list.length ? list.map(r => escapeHtml(r.name)).join(', ') : undefined)
+
+function briefSummary(lead: Extract<LeadRequest, { kind: 'brief' }>): Line[] {
+  const { brief, fit } = lead
+  return [
     '<b>Бриф</b>',
     line('Роль', text([brief.seniority, brief.role].filter(Boolean).join(' ') || undefined)),
     line('Must-have', fit.mustHave.length ? `${skills(fit.mustHave)} (${fit.mustHave.filter(s => s.inCv).length}/${fit.mustHave.length} в резюме)` : undefined),
@@ -54,10 +63,44 @@ export function formatLead(lead: LeadRequest): string {
     line('Старт', text(brief.start)),
     line('Компания (из брифа)', text(brief.company)),
     line('Заметки', text(brief.notes)),
-    '',
-    `Язык сайта: ${lead.locale}`,
   ]
-  return [...contact, ...summary].filter(value => value !== undefined).join('\n')
+}
+
+// The percentage is recomputed here from the classification and the visitor's answers:
+// a number sent by the client is never trusted
+function reportSummary(lead: Extract<LeadRequest, { kind: 'report' }>): Line[] {
+  const score = scoreWithPriorities(lead.requirements, lead.priorities)
+  const requirements = applyPriorities(lead.requirements, lead.priorities)
+  const must = requirements.filter(r => r.importance === 'must')
+  const asked = new Set(clarificationCandidates(lead.requirements).map(r => r.name))
+  const clarified = Object.entries(lead.priorities)
+    .filter(([name, value]) => value !== 'must' && asked.has(name))
+    .map(([name, value]) => `${escapeHtml(name)} → ${PRIORITY[value]}`)
+  const { counts } = score
+  return [
+    '<b>Отчёт по вакансии</b>',
+    line('Вакансия', text(lead.title)),
+    line('Компания (из вакансии)', text(lead.company)),
+    line('Совпадение', score.percent === null || !score.level ? 'не удалось оценить' : `${score.percent}% (${LEVEL[score.level]})`),
+    line('Уточнения рекрутера', clarified.length ? clarified.join(', ') : undefined),
+    line('❌ Нет must-have', names(must.filter(r => r.status === 'missing'))),
+    line('⚠️ Частично must-have', names(must.filter(r => r.status === 'partial'))),
+    line('❔ Нет данных в резюме', names(must.filter(r => r.status === 'unknown'))),
+    `Требований: ${requirements.length} (✅ ${counts.match}, ⚠️ ${counts.partial}, ❌ ${counts.missing}, ❔ ${counts.unknown})`,
+  ]
+}
+
+// The message for the owner: labels in Russian, values as the visitor typed them
+export function formatLead(lead: LeadRequest): string {
+  const contact = [
+    '<b>Новая заявка с сайта</b>',
+    line('Контакт', text(lead.contact)),
+    line('Имя', text(lead.name)),
+    line('Компания', text(lead.company)),
+    line('Комментарий', text(lead.comment)),
+  ]
+  const summary = lead.kind === 'brief' ? briefSummary(lead) : reportSummary(lead)
+  return [...contact, '', ...summary, '', `Язык сайта: ${lead.locale}`].filter(value => value !== undefined).join('\n')
 }
 
 // sendMessage of the Bot API; throws on a network error, a timeout or a refusal
