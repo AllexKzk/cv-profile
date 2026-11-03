@@ -11,6 +11,14 @@ export default defineNuxtConfig({
     '@nuxtjs/i18n',
   ],
   devtools: { enabled: true },
+  app: {
+    head: {
+      link: [
+        { rel: 'icon', type: 'image/png', href: '/favicon.png' },
+        { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
+      ],
+    },
+  },
   css: ['~/assets/css/main.css'],
   colorMode: {
     classSuffix: '',

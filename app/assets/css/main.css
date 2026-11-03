@@ -93,6 +93,10 @@
   --field-dot: var(--foreground);
   --field-opacity: 0.12;
   --field-side-opacity: 0.3;
+  /* Hover glint on borders: the hot spot, the silver around it and the darker metal ring */
+  --shine-hot: oklch(0.3 0.01 270);
+  --shine-silver: oklch(0.72 0.01 270);
+  --shine-dark: oklch(0.5 0.01 270);
 }
 
 .dark {
@@ -131,12 +135,58 @@
   --sidebar-ring: oklch(0.552 0.016 285.938);
   --field-opacity: 0.18;
   --field-side-opacity: 0.5;
+  --shine-hot: oklch(1 0 0);
+  --shine-silver: oklch(0.78 0.015 270);
+  --shine-dark: oklch(0.45 0.015 270);
 }
 
-/* Blocks over the live background: a semi-opaque theme fill that blurs the field under it.
-   Every blur layer is redrawn on each frame of the field, so phones get a denser fill without blur. */
+/* Blocks and buttons over the live background: no fill, a soft blur of the field under them.
+   The field is faint in the chat column, so the blurred patch keeps text readable. */
 @utility surface {
-  @apply bg-card/90 sm:bg-card/70 sm:backdrop-blur-md;
+  @apply bg-transparent backdrop-blur-md;
+}
+
+/* A CV skill the visitor asked for (vacancy, brief, their messages): a ring, the fill stays */
+@utility skill-requested {
+  @apply ring-2 ring-success ring-offset-1 ring-offset-background;
+}
+
+/* Hover glint: elements marked data-shine get a metallic highlight on their border that follows
+   the mouse (the shine plugin writes --shine-x / --shine-y). A 1px ring over the border, so the
+   content is untouched; touch screens never see it. An element may set --shine-strength (the
+   opacity on hover) and --shine-size (the spot's radius) to tone it down. */
+@layer components {
+  [data-shine] {
+    position: relative;
+  }
+
+  [data-shine]::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    padding: 1px;
+    border-radius: inherit;
+    pointer-events: none;
+    background: radial-gradient(
+      var(--shine-size, 180px) circle at var(--shine-x, 50%) var(--shine-y, 50%),
+      var(--shine-hot) 0%,
+      var(--shine-silver) 22%,
+      var(--shine-dark) 42%,
+      var(--shine-silver) 58%,
+      transparent 78%
+    );
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    [data-shine]:hover::before {
+      opacity: var(--shine-strength, 0.7);
+    }
+  }
 }
 
 

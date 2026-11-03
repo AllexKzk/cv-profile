@@ -3,6 +3,8 @@ import type { CvSkillGroup } from '#shared/cv'
 import CvCard from './CvCard.vue'
 
 defineProps<{ groups: CvSkillGroup[] }>()
+
+const isRequested = useRequestedSkills()
 </script>
 
 <template>
@@ -21,6 +23,8 @@ defineProps<{ groups: CvSkillGroup[] }>()
             v-for="item in group.items"
             :key="item.name"
             :variant="item.main ? 'default' : 'secondary'"
+            :class="{ requested: isRequested([item.name, ...item.aliases]) }"
+            :title="isRequested([item.name, ...item.aliases]) ? $t('cv.requested') : undefined"
           >
             {{ item.name }}
           </Badge>
@@ -47,5 +51,9 @@ defineProps<{ groups: CvSkillGroup[] }>()
 
 .items {
   @apply flex flex-wrap gap-1.5;
+}
+
+.requested {
+  @apply skill-requested;
 }
 </style>

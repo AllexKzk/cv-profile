@@ -48,18 +48,21 @@ describe('MatchReport', () => {
     expect(wrapper.find('[role="status"]').exists()).toBe(false)
   })
 
-  it('shows the score, clarifications, categories, strengths and risks', async () => {
+  it('shows the score, clarifications, strengths and only explicit gaps as risks', async () => {
     const wrapper = await mountInApp(MatchReport, { part: part() })
     // Vue 3 + Node.js 1.5 + Fintech 1 out of 3 + 3 + 3 + 1 → 55%
     expect(wrapper.find('.percent').text()).toBe('55%')
     expect(wrapper.find('.level').text()).toBe('Partial match')
     expect(wrapper.find('.basis').text()).toBe('Requirements: 5, must-haves: 4')
     expect(wrapper.findAll('.clarify-item .name').map(n => n.text())).toEqual(['Go', 'Node.js'])
-    expect(wrapper.findAll('.category-name').map(n => n.text())).toEqual(['Stack', 'Domain'])
+    // The importance is picked in a shadcn Button Group; the analysis' answer is pressed
+    const group = wrapper.find('.clarify-item [data-slot="button-group"]')
+    expect(group.findAll('button').map(b => b.attributes('aria-pressed'))).toEqual(['true', 'false', 'false'])
+    expect(wrapper.text()).not.toContain('By category')
     const [strengths, risks] = wrapper.findAll('.highlights .section')
     expect(strengths!.findAll('.name').map(n => n.text())).toEqual(['Vue 3', 'Fintech'])
-    expect(risks!.findAll('.name').map(n => n.text())).toEqual(['Go', 'Node.js', 'Travel'])
-    expect(risks!.text()).toContain('worth asking at the interview')
+    // Partial and unknown are not risks: only a must-have the CV lacks
+    expect(risks!.findAll('.name').map(n => n.text())).toEqual(['Go'])
     expect(wrapper.find('.clarified').exists()).toBe(false)
     expect(wrapper.find('.actions button').text()).toBe('Send the report to Alexandr')
   })
@@ -75,7 +78,7 @@ describe('MatchReport', () => {
     // Go is out: 5.5 of 7 → 79%
     expect(wrapper.find('.percent').text()).toBe('79%')
     expect(wrapper.find('.clarified').exists()).toBe(true)
-    expect(wrapper.findAll('.highlights .section')[1]!.findAll('.name').map(n => n.text())).toEqual(['Node.js', 'Travel'])
+    expect(wrapper.findAll('.highlights .section')[1]!.findAll('.name')).toHaveLength(0)
     expect(fetch).not.toHaveBeenCalled()
 
     await wrapper.find('.reset').trigger('click')

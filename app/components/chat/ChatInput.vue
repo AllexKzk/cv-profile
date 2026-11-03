@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowUp, Paperclip, Square } from '@lucide/vue'
+import { Paperclip, SendHorizontal, Square } from '@lucide/vue'
 import { CHAT_LIMITS } from '#shared/chat/history'
 import { useTextareaAutosize } from '@vueuse/core'
 import { Textarea } from '@/components/ui/textarea'
@@ -109,11 +109,12 @@ function onEnter(event: KeyboardEvent) {
       <Button
         v-else
         type="submit"
+        variant="ghost"
         size="icon"
         :disabled="!canSend"
         :aria-label="$t('chat.input.send')"
       >
-        <ArrowUp />
+        <SendHorizontal />
       </Button>
     </div>
   </form>

@@ -19,8 +19,8 @@
 @reference "~/assets/css/main.css";
 
 .topbar {
-  /* No backdrop: the live background runs full screen under the bar */
-  @apply sticky top-0 z-10 shrink-0;
+  /* A frosted bar: scrolled messages and the live background blur away behind the icons */
+  @apply sticky top-0 z-10 shrink-0 border-b bg-background/70 backdrop-blur-lg;
 }
 
 .inner {

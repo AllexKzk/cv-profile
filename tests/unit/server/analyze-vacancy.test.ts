@@ -48,8 +48,14 @@ describe('buildVacancyAnalysis', () => {
   })
 
   it('clears evidence of missing and unknown requirements', () => {
-    const result = analyze([req('Go', { status: 'missing', evidence: 'none' }), req('Travel', { category: 'format', status: 'unknown', evidence: '?' })])
+    const result = analyze([req('Go', { status: 'missing', evidence: 'none' }), req('Fintech', { category: 'domain', status: 'unknown', evidence: '?' })])
     expect(result.requirements.map(r => r.evidence)).toEqual(['', ''])
+  })
+
+  it('drops work conditions: they are agreed, not assessed', () => {
+    const result = analyze([req('Vue', { status: 'match' }), req('Office in Minsk', { category: 'format', status: 'missing' })])
+    expect(result.requirements.map(r => r.name)).toEqual(['Vue'])
+    expect(result.score.counts.missing).toBe(0)
   })
 
   it('cuts long texts and the number of requirements', () => {

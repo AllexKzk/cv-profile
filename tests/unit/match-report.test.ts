@@ -62,16 +62,16 @@ describe('scoreWithPriorities', () => {
 })
 
 describe('reportHighlights', () => {
-  it('strengths are matches, must-haves first; risks are must gaps, then unknown must-haves', () => {
+  it('strengths are matches, must-haves first; risks are only must-haves the CV lacks', () => {
     const { strengths, risks, moreRisks } = reportHighlights(applyPriorities(requirements))
     expect(strengths.map(r => r.name)).toEqual(['Vue', 'Playwright'])
-    expect(risks.map(r => r.name)).toEqual(['Go', 'Node.js', 'Travel'])
+    expect(risks.map(r => r.name)).toEqual(['Go'])
     expect(moreRisks).toBe(0)
   })
 
   it('a gap marked unimportant or nice is no longer a risk', () => {
     const { risks } = reportHighlights(applyPriorities(requirements, { 'Go': 'none', 'Node.js': 'nice' }))
-    expect(risks.map(r => r.name)).toEqual(['Travel'])
+    expect(risks).toEqual([])
   })
 
   it('caps the risks and counts the rest', () => {

@@ -18,7 +18,7 @@ const initials = computed(() => props.person.name.split(/\s+/).map(word => word[
 <template>
   <CvCard>
     <div class="hero">
-      <Avatar class="size-14 shrink-0 text-lg">
+      <Avatar class="size-20 shrink-0 text-2xl sm:size-24">
         <AvatarImage
           :src="person.photo"
           :alt="person.name"
@@ -32,18 +32,18 @@ const initials = computed(() => props.person.name.split(/\s+/).map(word => word[
         <p class="title">
           {{ person.title }}
         </p>
+        <ul class="facts">
+          <li class="fact">
+            <Briefcase class="icon" />
+            {{ $t('cv.hero.experience', experienceYears) }}
+          </li>
+          <li class="fact">
+            <Clock class="icon" />
+            {{ $t('cv.hero.timezone', { timezone: person.timezone }) }}
+          </li>
+        </ul>
       </div>
     </div>
-    <ul class="facts">
-      <li class="fact">
-        <Briefcase class="icon" />
-        {{ $t('cv.hero.experience', experienceYears) }}
-      </li>
-      <li class="fact">
-        <Clock class="icon" />
-        {{ $t('cv.hero.timezone', { timezone: person.timezone }) }}
-      </li>
-    </ul>
     <ul
       class="formats"
       :aria-label="$t('cv.hero.openTo')"
@@ -88,7 +88,7 @@ const initials = computed(() => props.person.name.split(/\s+/).map(word => word[
   @apply flex items-center gap-4;
 }
 
-/* Avatar, name and title share one row on every screen size */
+/* A large avatar beside the name, the title and the key facts, on every screen size */
 .identity {
   @apply flex min-w-0 flex-col;
 }
@@ -102,7 +102,7 @@ const initials = computed(() => props.person.name.split(/\s+/).map(word => word[
 }
 
 .facts {
-  @apply mt-4 flex flex-wrap gap-x-4 gap-y-1 text-sm;
+  @apply mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm;
 }
 
 .fact {
@@ -114,7 +114,7 @@ const initials = computed(() => props.person.name.split(/\s+/).map(word => word[
 }
 
 .formats {
-  @apply mt-2 flex flex-wrap gap-1.5;
+  @apply mt-4 flex flex-wrap gap-1.5;
 }
 
 .contacts {

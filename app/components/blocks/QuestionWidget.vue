@@ -76,6 +76,7 @@ function done() {
   <section
     v-if="input && config"
     class="question"
+    data-shine
     :class="{ answered: !waiting }"
     :data-slot="input.slot"
   >

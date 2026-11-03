@@ -51,17 +51,35 @@ function scrollToMessageEnd(id: string) {
   onScroll()
 }
 
+// Space left between the sticky TopBar and the top of a CV answer
+const HEADER_MARGIN = 16
+
+// Puts the top of a message just below the sticky TopBar
+function scrollToMessageTop(id: string) {
+  const node = content.value?.querySelector(`[data-message-id="${id}"]`)
+  if (!node) return
+  const header = document.querySelector('.topbar')?.getBoundingClientRect().bottom ?? 0
+  window.scrollBy({ top: node.getBoundingClientRect().top - header - HEADER_MARGIN })
+  onScroll()
+}
+
 // A local answer made of blocks (CV sections, download card) is long: the user reads it
 // from the top at their own pace, so we do not jump to its end
 const isBlockAnswer = (message?: CvUIMessage) =>
   message?.role === 'assistant' && message.parts.some(part => part.type.startsWith('data-'))
+
+// The whole CV: it opens from its hero, right below the TopBar
+const isCvAnswer = (message?: CvUIMessage) =>
+  message?.role === 'assistant' && message.parts.some(part => part.type === 'data-cv')
 
 // A new message from the user (typed or a quick action): always jump to it,
 // even if they were reading history
 const lastUserMessageId = computed(() => props.messages.findLast(message => message.role === 'user')?.id)
 watch(lastUserMessageId, async (id) => {
   await nextTick()
-  if (id && isBlockAnswer(props.messages.at(-1))) scrollToMessageEnd(id)
+  const answer = props.messages.at(-1)
+  if (id && answer && isCvAnswer(answer)) scrollToMessageTop(answer.id)
+  else if (id && isBlockAnswer(answer)) scrollToMessageEnd(id)
   else scrollToBottom()
 })
 
