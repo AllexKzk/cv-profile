@@ -108,6 +108,9 @@ export async function handleChat(ctx: ChatContext): Promise<Response> {
     tools,
     stopWhen: isStepCount(MAX_STEPS),
     maxOutputTokens: scenario.maxOutputTokens,
+    providerOptions: 'reasoningEffort' in scenario
+      ? { openrouter: { reasoning: { effort: scenario.reasoningEffort } } }
+      : undefined,
     onFinish: async ({ steps, totalUsage }) => {
       const cost = answerCost(steps)
       console.info('[chat] usage', JSON.stringify({

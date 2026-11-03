@@ -79,6 +79,7 @@ describe('handleChat', () => {
 
     const call = model.doStreamCalls[0]!
     expect(call.maxOutputTokens).toBe(800)
+    expect(call.providerOptions).toBeUndefined()
     expect(JSON.stringify(call.prompt[0])).toContain('<cv>')
     expect(JSON.stringify(call.prompt)).toContain('The CV section \\"skills\\" was shown to the user')
   })
@@ -197,6 +198,8 @@ describe('handleChat', () => {
         output: { title: 'Senior Frontend Engineer', score: { percent: 50, level: 'partial', mustMissing: ['Go'] } },
       })
       expect(model.doStreamCalls[0]!.maxOutputTokens).toBe(4000)
+      // Less thinking, so the requirements list fits in the step
+      expect(model.doStreamCalls[0]!.providerOptions).toEqual({ openrouter: { reasoning: { effort: 'low' } } })
       // The model gets the classification back, without the percentage
       const toolResult = JSON.stringify(model.doStreamCalls[1]!.prompt.at(-1))
       expect(toolResult).toContain('Go (must): missing')

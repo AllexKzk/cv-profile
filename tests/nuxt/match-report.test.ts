@@ -31,11 +31,21 @@ function seed(extra: CvUIMessage['parts'] = []) {
 const priorities = () => useCvChat().messages.value[1]!.parts.find(p => p.type === 'data-priorities')
 
 describe('MatchReport', () => {
-  beforeEach(() => seed())
+  beforeEach(() => {
+    seed()
+    useCvChat().status.value = 'ready'
+  })
 
   it('shows a placeholder while the analysis streams in', async () => {
+    useCvChat().status.value = 'streaming'
     const wrapper = await mountInApp(MatchReport, { part: { ...part('input-streaming'), input: undefined } })
     expect(wrapper.text()).toContain('Analyzing the vacancy')
+  })
+
+  it('does not spin forever when the answer was stopped mid-analysis', async () => {
+    const wrapper = await mountInApp(MatchReport, { part: { ...part('input-streaming'), input: undefined } })
+    expect(wrapper.text()).toContain('The analysis was interrupted')
+    expect(wrapper.find('[role="status"]').exists()).toBe(false)
   })
 
   it('shows the score, clarifications, categories, strengths and risks', async () => {

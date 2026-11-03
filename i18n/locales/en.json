@@ -216,6 +216,7 @@
     "match": {
       "analyzing": "Analyzing the vacancy…",
       "failed": "Couldn't analyze the vacancy.",
+      "interrupted": "The analysis was interrupted. Send the vacancy again.",
       "noScore": "The CV doesn't say enough to estimate the match.",
       "level": {
         "strong": "Strong match",

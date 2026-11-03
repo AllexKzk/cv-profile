@@ -29,6 +29,8 @@ const priorities = useMatchPriorities(() => props.part.toolCallId)
 
 const analysis = computed(() => props.part.state === 'output-available' ? props.part.output : undefined)
 const failed = computed(() => props.part.state === 'output-error')
+// No result and the message no longer streams: the answer was stopped or broke off mid-call
+const interrupted = computed(() => !analysis.value && !failed.value && !priorities.busy.value)
 
 const requirements = computed(() => applyPriorities(analysis.value?.requirements ?? [], priorities.values.value))
 const score = computed(() => scoreWithPriorities(analysis.value?.requirements ?? [], priorities.values.value))
@@ -73,6 +75,12 @@ const subject = computed((): LeadSubject | undefined => analysis.value && {
     class="failed"
   >
     {{ $t('vacancy.match.failed') }}
+  </p>
+  <p
+    v-else-if="interrupted"
+    class="failed"
+  >
+    {{ $t('vacancy.match.interrupted') }}
   </p>
   <CvCard v-else-if="!analysis">
     <p
