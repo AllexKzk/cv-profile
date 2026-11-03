@@ -81,5 +81,156 @@
     },
     "products": "Products",
     "achievements": "Achievements"
+  },
+  "interview": {
+    "options": {
+      "role": {
+        "frontend": "Frontend",
+        "fullstack": "Fullstack",
+        "lead": "Tech Lead / Team Lead"
+      },
+      "seniority": {
+        "middle": "Middle",
+        "senior": "Senior",
+        "lead": "Lead",
+        "staff": "Staff+"
+      },
+      "format": {
+        "remote": "Remote",
+        "hybrid": "Hybrid",
+        "office": "Office"
+      },
+      "domain": {
+        "fintech": "Fintech",
+        "ecommerce": "E-commerce",
+        "saas": "B2B SaaS",
+        "media": "Media",
+        "internal": "Internal tools"
+      },
+      "employment": {
+        "full": "Full-time",
+        "part": "Part-time",
+        "contract": "Contract / B2B"
+      },
+      "start": {
+        "asap": "As soon as possible",
+        "month": "Within a month",
+        "quarter": "In 1–3 months",
+        "flexible": "Flexible"
+      }
+    },
+    "custom": "Your own option",
+    "add": "Add",
+    "done": "Done",
+    "skip": "Skip",
+    "skipped": "Skipped",
+    "textPlaceholder": "Your answer",
+    "salary": {
+      "min": "From",
+      "max": "To",
+      "from": "from {value}",
+      "to": "up to {value}",
+      "period": {
+        "month": "per month",
+        "year": "per year"
+      }
+    }
+  },
+  "brief": {
+    "title": "Vacancy brief",
+    "notSpecified": "not specified",
+    "fields": {
+      "role": "Role",
+      "mustHave": "Must-have stack",
+      "niceToHave": "Nice to have",
+      "format": "Format",
+      "location": "Location",
+      "domain": "Domain",
+      "employment": "Employment",
+      "salary": "Salary",
+      "start": "Start",
+      "company": "Company",
+      "notes": "Notes"
+    },
+    "inCv": "In the CV",
+    "notInCv": "Not in the CV",
+    "stackFit": "Must-have stack: {matched} of {total} in the CV.",
+    "formatFit": {
+      "match": "fits",
+      "relocation": "with relocation",
+      "mismatch": "does not fit"
+    },
+    "cta": "Send to Alexandr",
+    "sent": "Request sent"
+  },
+  "lead": {
+    "title": "Contact {name}",
+    "description": "The brief and your contact go to his Telegram. Nothing is sent until you click the button.",
+    "contact": "Contact",
+    "contactHint": "Telegram, email or phone",
+    "name": "Name",
+    "company": "Company",
+    "comment": "Comment",
+    "submit": "Send",
+    "sent": "Request sent. Alexandr will get back to you at the contact you left.",
+    "writeDirect": "Write on Telegram",
+    "error": {
+      "invalid": "Please check the form fields.",
+      "forbidden": "The form only works on the original site.",
+      "rate_limit": "A request has already been sent today.",
+      "unavailable": "Sending requests does not work right now.",
+      "send_failed": "Could not send the request. Try again or",
+      "network": "Could not send the request. Check your connection or"
+    }
+  },
+  "vacancy": {
+    "pasted": "Pasted text",
+    "loading": "Reading the file…",
+    "chars": "{n} character | {n} characters",
+    "truncated": "cut to the limit",
+    "remove": "Remove the vacancy",
+    "drop": "Drop the vacancy file here",
+    "error": {
+      "invalid": "Couldn't upload this file.",
+      "forbidden": "Upload works only on the original website.",
+      "too_large": "The file is too large: up to 2 MB and 10 pages.",
+      "unsupported": "Only PDF, DOCX, MD and TXT files are supported.",
+      "empty_text": "No text found in the file. If it is a scan, paste the text instead.",
+      "parse_failed": "Couldn't read the file. It may be damaged or password-protected.",
+      "rate_limit": "Too many files in a row. Try again in a few minutes.",
+      "network": "Couldn't upload the file. Check your connection and try again."
+    },
+    "dialog": {
+      "title": "Upload a vacancy",
+      "description": "Attach a job description, and the assistant will compare it with the CV.",
+      "file": "Choose a file",
+      "dropHint": "or drag it here: PDF, DOCX, MD or TXT up to 2 MB",
+      "or": "Or paste the text",
+      "placeholder": "Paste the job description…",
+      "tooShort": "The text is too short for a job description.",
+      "attach": "Attach"
+    },
+    "match": {
+      "analyzing": "Analyzing the vacancy…",
+      "failed": "Couldn't analyze the vacancy.",
+      "noScore": "The CV doesn't say enough to estimate the match.",
+      "level": {
+        "strong": "Strong match",
+        "good": "Good match",
+        "partial": "Partial match",
+        "weak": "Weak match"
+      },
+      "status": {
+        "match": "Matches",
+        "partial": "Partly",
+        "missing": "Missing",
+        "unknown": "Not in the CV"
+      },
+      "importance": {
+        "must": "must",
+        "nice": "nice"
+      },
+      "mustMissing": "Missing must-haves: {list}"
+    }
   }
 }

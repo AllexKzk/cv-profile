@@ -35,6 +35,28 @@ export function toolStep(section: string, cost = 0.001, items?: string[]): Langu
   ]
 }
 
+// One step with calls of any tools, as the model would make them in parallel
+export function toolCallsStep(...calls: Array<{ name: string, input: unknown }>): LanguageModelV4StreamPart[] {
+  return [
+    { type: 'stream-start', warnings: [] },
+    ...calls.map((call, index): LanguageModelV4StreamPart => ({
+      type: 'tool-call',
+      toolCallId: `call-${index + 1}`,
+      toolName: call.name,
+      input: JSON.stringify(call.input),
+    })),
+    finish('tool-calls', 0.001),
+  ]
+}
+
+export function analyzeStep(input: unknown, cost = 0.002): LanguageModelV4StreamPart[] {
+  return [
+    { type: 'stream-start', warnings: [] },
+    { type: 'tool-call', toolCallId: 'call-a', toolName: 'analyzeVacancy', input: JSON.stringify(input) },
+    finish('tool-calls', cost),
+  ]
+}
+
 // A model that answers each step with the next list of stream parts
 export function mockModel(...steps: LanguageModelV4StreamPart[][]) {
   let step = 0
@@ -49,4 +71,17 @@ export function userMessage(text: string, id = 'u1'): CvUIMessage {
 
 export function requestBody(messages: CvUIMessage[], extra: Record<string, unknown> = {}) {
   return JSON.stringify({ messages, scenario: 'free', locale: 'en', ...extra })
+}
+
+export const VACANCY_TEXT = 'Senior Frontend Engineer. Requirements: Vue 3, TypeScript, Go. Nice to have: fintech.'
+
+export function vacancyMessage(id = 'u1', text = VACANCY_TEXT, comment?: string): CvUIMessage {
+  return {
+    id,
+    role: 'user',
+    parts: [
+      { type: 'data-vacancy', data: { source: 'file', fileName: 'job.pdf', text } },
+      ...(comment ? [{ type: 'text' as const, text: comment }] : []),
+    ],
+  }
 }

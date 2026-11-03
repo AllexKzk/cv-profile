@@ -83,6 +83,7 @@ export const en = {
     backend: 'Backend',
     ai: 'AI',
   },
-  // TODO(owner): not in the CV yet
-  languages: [],
+  languages: [
+    { name: 'English', level: 'B2 (Upper-Intermediate)' },
+  ],
 } satisfies CvTextsInput

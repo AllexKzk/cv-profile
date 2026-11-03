@@ -1,4 +1,5 @@
 import { generateId } from 'ai'
+import { pendingQuestions } from '#shared/chat/interview'
 import type { CvUIMessage } from '#shared/types/chat'
 
 // Shared chat (refs + actions from useChat), created by plugins/chat.ts
@@ -28,5 +29,31 @@ export function useLocalExchange() {
     clearError()
     fresh.value = [...fresh.value, answer.id]
     messages.value = [...messages.value, userMessage, answer]
+  }
+}
+
+// Appends an assistant message without a question (a confirmation after an action in a block)
+export function useLocalAnswer() {
+  const { messages } = useCvChat()
+  const fresh = useFreshMessages()
+
+  return (parts: CvUIMessage['parts']) => {
+    const answer: CvUIMessage = { id: generateId(), role: 'assistant', parts }
+    fresh.value = [...fresh.value, answer.id]
+    messages.value = [...messages.value, answer]
+  }
+}
+
+// Answers the open interview questions with typed text instead of clicks: the first one gets
+// the text, the rest are skipped, and the round goes to the agent. False when nothing is open.
+export function useAnswerByText() {
+  const { messages, addToolOutput } = useCvChat()
+
+  return (text: string): boolean => {
+    const [first, ...rest] = pendingQuestions(messages.value)
+    if (!first) return false
+    addToolOutput({ tool: 'askQuestion', toolCallId: first.toolCallId, output: { kind: 'text', text } })
+    for (const part of rest) addToolOutput({ tool: 'askQuestion', toolCallId: part.toolCallId, output: { kind: 'skipped' } })
+    return true
   }
 }

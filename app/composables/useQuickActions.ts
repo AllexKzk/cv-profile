@@ -1,8 +1,5 @@
 import { Download, FileText, FileUp, UserSearch } from '@lucide/vue'
-import { useFileDialog } from '@vueuse/core'
 import type { Component } from 'vue'
-
-export const VACANCY_FILE_ACCEPT = '.pdf,.docx,.md,.txt'
 
 export type QuickActionId = 'showCv' | 'lookingFor' | 'downloadCv' | 'uploadVacancy'
 
@@ -18,32 +15,30 @@ export const QUICK_ACTIONS: QuickAction[] = [
   { id: 'uploadVacancy', icon: FileUp },
 ]
 
-// Opens the file picker for a vacancy. In F1 the file is not uploaded anywhere (F5).
-export function useVacancyPicker() {
+// Starts the interview: the invisible `data-interview` part switches the chat to that scenario
+export function useStartInterview() {
   const { t } = useI18n()
-  const exchange = useLocalExchange()
-  const { open, onChange } = useFileDialog({ accept: VACANCY_FILE_ACCEPT, multiple: false, reset: true })
+  const { status, sendMessage, clearError } = useCvChat()
 
-  onChange((files) => {
-    const file = files?.[0]
-    if (file) exchange(file.name, t('chat.stub.soon'))
-  })
-
-  return { open }
+  return () => {
+    // Another answer is on its way: the composer is busy too
+    if (status.value === 'submitted' || status.value === 'streaming') return
+    clearError()
+    sendMessage({ parts: [{ type: 'text', text: t('chat.actions.lookingFor') }, { type: 'data-interview', data: {} }] })
+  }
 }
 
-// Handlers of the quick buttons. The rest are stubs until F3–F5 replace them.
+// Handlers of the quick buttons
 export function useQuickActions() {
-  const { t } = useI18n()
-  const exchange = useLocalExchange()
-  const picker = useVacancyPicker()
+  const vacancyDialog = useVacancyDialog()
   const scenarios = useLocalScenarios()
+  const startInterview = useStartInterview()
 
   function run(id: QuickActionId) {
     if (id === 'showCv') return scenarios.showCv()
     if (id === 'downloadCv') return scenarios.downloadCv()
-    if (id === 'uploadVacancy') return picker.open()
-    exchange(t(`chat.actions.${id}`), t('chat.stub.soon'))
+    if (id === 'uploadVacancy') return (vacancyDialog.value = true)
+    startInterview()
   }
 
   return { actions: QUICK_ACTIONS, run }
